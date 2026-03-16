@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>System: Real-Time Combat</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; overflow: hidden; margin: 0; height: 100vh; }
+        
+        .battle-screen { 
+            display: flex; flex-direction: column; align-items: center; 
+            height: 100vh; width: 100vw; box-sizing: border-box;
+            background: radial-gradient(circle, #0a1118 0%, #000 100%);
+            padding: 10px;
+        }
+        
+        .arena { display: flex; justify-content: space-around; align-items: center; width: 100%; flex: 1; min-height: 0; }
+        
+        .entity { text-align: center; width: 30%; position: relative; }
+        .entity img { max-height: 50vh; width: auto; filter: drop-shadow(0 0 15px rgba(17, 210, 239, 0.3)); }
+
+        .bar-container { width: 100%; background: #111; height: 8px; margin-top: 5px; border-radius: 2px; overflow: hidden; }
+        .hp-fill { height: 100%; background: #00FF44; width: 100%; transition: 0.2s; }
+        .mp-fill { height: 100%; background: #11D2EF; width: 0%; transition: 0.2s; }
+        .cd-fill { height: 100%; background: #FFD700; width: 0%; }
+
+        .bar-label { font-size: 0.6rem; color: #555; font-family: monospace; margin-top: 2px; }
+
+        .combat-log { 
+            width: 90%; max-width: 600px; height: 80px; 
+            background: rgba(0,0,0,0.8); border: 1px solid #11D2EF; 
+            padding: 8px; overflow-y: auto; font-family: monospace; 
+            font-size: 0.75rem; margin: 10px 0;
+        }
+        
+        .controls { 
+            display: flex; flex-wrap: wrap; gap: 10px; padding: 15px; 
+            background: #050505; width: 100%; justify-content: center; 
+            border-top: 1px solid #222;
+        }
+
+        .action-btn { 
+            background: #000; border: 2px solid #11D2EF; color: #11D2EF; 
+            padding: 8px 20px; cursor: pointer; font-weight: bold; 
+            text-transform: uppercase; font-size: 0.8rem;
+        }
+        .action-btn:disabled { border-color: #333; color: #333; opacity: 0.5; cursor: not-allowed; }
+        .potion-btn { border-color: #ff4444; color: #ff4444; }
+        .skill1-btn { border-color: #00FF44; color: #00FF44; }
+        .skill2-btn { border-color: #9d4edd; color: #9d4edd; }
+
+        #death-screen { 
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.95); z-index: 1000; flex-direction: column; 
+            justify-content: center; align-items: center; gap: 20px;
+        }
+
+        #victory-screen {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.95); z-index: 1000; flex-direction: column; 
+            justify-content: center; align-items: center; gap: 20px;
+        }
+
+        .reward-box {
+            background: rgba(17,210,239,0.05); border: 1px solid #11D2EF;
+            padding: 20px 40px; text-align: center; font-family: monospace;
+        }
+    </style>
+</head>
+<body onload="startSystem()">
+
+    <div id="death-screen">
+        <h1 style="color:#ff4444; font-size:3rem; letter-spacing:10px;">YOU DIED</h1>
+        <p style="color:#555; font-family:monospace;">Train harder and return stronger.</p>
+        <button class="action-btn" onclick="window.location.href='home.html'">RETURN TO CAMP</button>
+    </div>
+
+    <div id="victory-screen">
+        <h1 style="color:#FFD700; font-size:3rem; letter-spacing:10px;">VICTORY</h1>
+        <div class="reward-box" id="reward-box">
+            <p style="color:#11D2EF; margin-bottom:10px; letter-spacing:3px;">REWARDS</p>
+            <p id="reward-gold" style="color:#FFD700;">+0G</p>
+            <p id="reward-xp" style="color:#00FF44;">+0 XP</p>
+            <p id="skill-unlock-msg" style="color:#9d4edd; margin-top:10px; display:none;"></p>
+        </div>
+        <button class="action-btn" onclick="window.location.href='dungeon.html'">CONTINUE</button>
+    </div>
+
+    <div class="battle-screen">
+        <h3 id="boss-title" style="color:#ff4444; letter-spacing:3px; margin: 5px 0;">GATE ACTIVE</h3>
+        
+        <div class="arena">
+            <div class="entity">
+                <h4 id="p-name" style="margin:5px 0; color:#11D2EF;">HUNTER</h4>
+                <img id="p-img" src="">
+                <div class="bar-container"><div id="p-hp-bar" class="hp-fill"></div></div>
+                <div class="bar-label" id="p-hp-text">HP</div>
+                <div class="bar-container" style="height:4px;"><div id="p-mp-bar" class="mp-fill"></div></div>
+                <div class="bar-label" id="p-mp-text">MP</div>
+                <div class="bar-container" style="height:4px;"><div id="p-cd-bar" class="cd-fill"></div></div>
+                <div class="bar-label">CD</div>
+            </div>
+
+            <div style="text-align:center; color:#555; font-size:2rem;">VS</div>
+
+            <div class="entity">
+                <h4 id="m-name" style="color:#ff4444; margin:5px 0;">BOSS</h4>
+                <img id="m-img" src="" style="max-height:200px;">
+                <div class="bar-container"><div id="m-hp-bar" class="hp-fill" style="background:#f44"></div></div>
+                <div class="bar-label" id="m-hp-text">HP</div>
+                <div class="bar-container" style="height:4px;"><div id="m-cd-bar" class="cd-fill" style="background:#f44"></div></div>
+                <div class="bar-label">CD</div>
+            </div>
+        </div>
+
+        <div class="combat-log" id="log"></div>
+
+        <div class="controls">
+            <button class="action-btn" id="atk-btn" onclick="playerAttack()">⚔ STRIKE</button>
+            <button class="action-btn skill1-btn" id="skill1-btn" onclick="useSkill(1)">SKILL 1</button>
+            <button class="action-btn skill2-btn" id="skill2-btn" onclick="useSkill(2)">SKILL 2</button>
+            <button class="action-btn potion-btn" id="pot-btn" onclick="usePotion()">🧪 POTION (<span id="pot-qty">0</span>)</button>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // SKILL DATABASE (same as home.html)
+        // ============================================
+        const SKILL_DB = {
+            'gojo_e': { id:'gojo_e', name:'Basic Cursed Energy', rank:'E', mpCost:30, dmgMult:2, color:'#11D2EF', msg:'Gojo releases basic cursed energy!' },
+            'gojo_d': { id:'gojo_d', name:'Red', rank:'D', mpCost:40, dmgMult:3, color:'#ff4444', msg:'Gojo activates Cursed Technique Lapse: Red!' },
+            'gojo_c': { id:'gojo_c', name:'Infinity', rank:'C', mpCost:50, dmgMult:4, color:'#fff', msg:'Gojo unleashes Infinity — all attacks slowed!' },
+            'gojo_b': { id:'gojo_b', name:'Blue', rank:'B', mpCost:65, dmgMult:5, color:'#11D2EF', msg:'Gojo activates Cursed Technique Reversal: Blue!' },
+            'gojo_a': { id:'gojo_a', name:'Purple', rank:'A', mpCost:80, dmgMult:7, color:'#9d4edd', msg:'HOLLOW PURPLE — Imaginary Mass obliterates everything!' },
+            'gojo_s': { id:'gojo_s', name:'Six Eyes', rank:'S', mpCost:100, dmgMult:10, color:'#FFD700', msg:'Six Eyes activated — Gojo sees everything!' },
+            'gojo_splus': { id:'gojo_splus', name:'Unlimited Void', rank:'S+', mpCost:150, dmgMult:15, color:'#fff', msg:'DOMAIN EXPANSION: UNLIMITED VOID!' },
+            'garou_e': { id:'garou_e', name:'Martial Arts', rank:'E', mpCost:30, dmgMult:2, color:'#11D2EF', msg:'Garou uses basic martial arts!' },
+            'garou_d': { id:'garou_d', name:'Hero Hunt', rank:'D', mpCost:40, dmgMult:3, color:'#ff4444', msg:'Garou activates Hero Hunting stance!' },
+            'garou_c': { id:'garou_c', name:'Monster Form', rank:'C', mpCost:50, dmgMult:4, color:'#9d4edd', msg:'Garou transforms into Monster form!' },
+            'garou_b': { id:'garou_b', name:'Instinct Copy', rank:'B', mpCost:65, dmgMult:5, color:'#FFD700', msg:'Garou copies the enemy attack pattern!' },
+            'garou_a': { id:'garou_a', name:'God Slayer', rank:'A', mpCost:80, dmgMult:7, color:'#ff4444', msg:'GOD SLAYER FIST — Garou strikes with divine force!' },
+            'garou_s': { id:'garou_s', name:'Cosmic Fear', rank:'S', mpCost:100, dmgMult:10, color:'#9d4edd', msg:'Garou radiates Cosmic Fear Mode!' },
+            'garou_splus': { id:'garou_splus', name:'Absolute Evil', rank:'S+', mpCost:150, dmgMult:15, color:'#ff4444', msg:'ABSOLUTE EVIL — Garou becomes the embodiment of destruction!' },
+            'jinwoo_e': { id:'jinwoo_e', name:'Basic Combat', rank:'E', mpCost:30, dmgMult:2, color:'#11D2EF', msg:'Sung Jin-Woo attacks!' },
+            'jinwoo_d': { id:'jinwoo_d', name:'Shadow Pull', rank:'D', mpCost:40, dmgMult:3, color:'#9d4edd', msg:'Jin-Woo pulls the enemy from the shadows!' },
+            'jinwoo_c': { id:'jinwoo_c', name:"Ruler's Hand", rank:'C', mpCost:50, dmgMult:4, color:'#11D2EF', msg:"Ruler's Hand — Jin-Woo controls the battlefield!" },
+            'jinwoo_b': { id:'jinwoo_b', name:'Shadow Army', rank:'B', mpCost:65, dmgMult:5, color:'#9d4edd', msg:'Shadow Army summoned!' },
+            'jinwoo_a': { id:'jinwoo_a', name:"Monarch's Domain", rank:'A', mpCost:80, dmgMult:7, color:'#9d4edd', msg:"MONARCH'S DOMAIN!" },
+            'jinwoo_s': { id:'jinwoo_s', name:'Arise', rank:'S', mpCost:100, dmgMult:10, color:'#9d4edd', msg:'ARISE — The dead rise to serve the Shadow Monarch!' },
+            'jinwoo_splus': { id:'jinwoo_splus', name:'Shadow Monarch', rank:'S+', mpCost:150, dmgMult:15, color:'#9d4edd', msg:'SHADOW MONARCH AWAKENED!' },
+            'asta_e': { id:'asta_e', name:'Sword Strike', rank:'E', mpCost:30, dmgMult:2, color:'#11D2EF', msg:'Asta swings his anti-magic sword!' },
+            'asta_d': { id:'asta_d', name:'Anti-Magic', rank:'D', mpCost:40, dmgMult:3, color:'#333', msg:'Asta channels anti-magic through his blade!' },
+            'asta_c': { id:'asta_c', name:'Black Asta', rank:'C', mpCost:50, dmgMult:4, color:'#555', msg:'BLACK ASTA — The demon power awakens!' },
+            'asta_b': { id:'asta_b', name:'Demon Form', rank:'B', mpCost:65, dmgMult:5, color:'#ff4444', msg:'Asta fully merges with the demon!' },
+            'asta_a': { id:'asta_a', name:'Black Divider', rank:'A', mpCost:80, dmgMult:7, color:'#333', msg:'BLACK DIVIDER!' },
+            'asta_s': { id:'asta_s', name:'Infinite Slash', rank:'S', mpCost:100, dmgMult:10, color:'#555', msg:'INFINITE SLASH EQUINOX!' },
+            'asta_splus': { id:'asta_splus', name:'Unite Mode', rank:'S+', mpCost:150, dmgMult:15, color:'#ff4444', msg:'UNITE MODE — Asta and Liebe become one!' },
+            'toji_e': { id:'toji_e', name:'Basic Strike', rank:'E', mpCost:30, dmgMult:2, color:'#11D2EF', msg:'Toji strikes with raw physical power!' },
+            'toji_d': { id:'toji_d', name:'Heavy Blow', rank:'D', mpCost:40, dmgMult:3, color:'#ff4444', msg:'Toji delivers a devastating heavy blow!' },
+            'toji_c': { id:'toji_c', name:'Inverted Spear', rank:'C', mpCost:50, dmgMult:4, color:'#FFD700', msg:'Toji uses the Inverted Spear of Heaven!' },
+            'toji_b': { id:'toji_b', name:'Playful Cloud', rank:'B', mpCost:65, dmgMult:5, color:'#ff4444', msg:'Toji wields the Playful Cloud!' },
+            'toji_a': { id:'toji_a', name:'Soul Split', rank:'A', mpCost:80, dmgMult:7, color:'#9d4edd', msg:'SOUL SPLIT!' },
+            'toji_s': { id:'toji_s', name:'Zero Magic', rank:'S', mpCost:100, dmgMult:10, color:'#fff', msg:'ZERO MAGIC — Heavenly Restriction!' },
+            'toji_splus': { id:'toji_splus', name:'Heavenly Restriction', rank:'S+', mpCost:150, dmgMult:15, color:'#fff', msg:'FULL HEAVENLY RESTRICTION!' },
+            'ippo_e': { id:'ippo_e', name:'Jab', rank:'E', mpCost:30, dmgMult:2, color:'#11D2EF', msg:'Ippo throws a sharp jab!' },
+            'ippo_d': { id:'ippo_d', name:'Straight', rank:'D', mpCost:40, dmgMult:3, color:'#FFD700', msg:'Ippo delivers a powerful straight punch!' },
+            'ippo_c': { id:'ippo_c', name:'Liver Blow', rank:'C', mpCost:50, dmgMult:4, color:'#ff4444', msg:'Ippo hits the liver!' },
+            'ippo_b': { id:'ippo_b', name:'Dempsey Roll', rank:'B', mpCost:65, dmgMult:5, color:'#FFD700', msg:'DEMPSEY ROLL!' },
+            'ippo_a': { id:'ippo_a', name:'Gazelle Punch', rank:'A', mpCost:80, dmgMult:7, color:'#11D2EF', msg:'GAZELLE PUNCH!' },
+            'ippo_s': { id:'ippo_s', name:'Smash', rank:'S', mpCost:100, dmgMult:10, color:'#FFD700', msg:'THE SMASH!' },
+            'ippo_splus': { id:'ippo_splus', name:'Flicker', rank:'S+', mpCost:150, dmgMult:15, color:'#fff', msg:'FLICKER — A punch too fast to see!' },
+            'tanjiro_e': { id:'tanjiro_e', name:'Water Breathing', rank:'E', mpCost:30, dmgMult:2, color:'#11D2EF', msg:'Tanjiro uses Water Breathing: First Form!' },
+            'tanjiro_d': { id:'tanjiro_d', name:'Constant Flux', rank:'D', mpCost:40, dmgMult:3, color:'#11D2EF', msg:'Water Breathing: Sixth Form!' },
+            'tanjiro_c': { id:'tanjiro_c', name:'Whirlpool', rank:'C', mpCost:50, dmgMult:4, color:'#11D2EF', msg:'Water Breathing: Seventh Form!' },
+            'tanjiro_b': { id:'tanjiro_b', name:'Blessed Rain', rank:'B', mpCost:65, dmgMult:5, color:'#11D2EF', msg:'Water Breathing: Second Form!' },
+            'tanjiro_a': { id:'tanjiro_a', name:'Waltz', rank:'A', mpCost:80, dmgMult:7, color:'#FFD700', msg:'Hinokami Kagura: Dance!' },
+            'tanjiro_s': { id:'tanjiro_s', name:'Hinokami Kagura', rank:'S', mpCost:100, dmgMult:10, color:'#ff4444', msg:'HINOKAMI KAGURA!' },
+            'tanjiro_splus': { id:'tanjiro_splus', name:'Sun Breathing', rank:'S+', mpCost:150, dmgMult:15, color:'#FFD700', msg:'SUN BREATHING: THIRTEENTH FORM!' },
+            'thorfinn_e': { id:'thorfinn_e', name:'Knife Throw', rank:'E', mpCost:30, dmgMult:2, color:'#11D2EF', msg:'Thorfinn throws his daggers!' },
+            'thorfinn_d': { id:'thorfinn_d', name:'Ambush', rank:'D', mpCost:40, dmgMult:3, color:'#555', msg:'Thorfinn strikes from the shadows!' },
+            'thorfinn_c': { id:'thorfinn_c', name:'Spin Attack', rank:'C', mpCost:50, dmgMult:4, color:'#FFD700', msg:'Thorfinn spins and slashes!' },
+            'thorfinn_b': { id:'thorfinn_b', name:'Snake Pit', rank:'B', mpCost:65, dmgMult:5, color:'#00FF44', msg:'SNAKE PIT!' },
+            'thorfinn_a': { id:'thorfinn_a', name:'Falling Star', rank:'A', mpCost:80, dmgMult:7, color:'#FFD700', msg:'FALLING STAR!' },
+            'thorfinn_s': { id:'thorfinn_s', name:'Sword of Thor', rank:'S', mpCost:100, dmgMult:10, color:'#FFD700', msg:'SWORD OF THOR!' },
+            'thorfinn_splus': { id:'thorfinn_splus', name:"Warrior's Code", rank:'S+', mpCost:150, dmgMult:15, color:'#fff', msg:"WARRIOR'S CODE!" },
+        };
+
+        const currentUser = localStorage.getItem('currentUser');
+        let player = JSON.parse(localStorage.getItem(currentUser));
+        let p, m, battleActive = true;
+        let pCD = 0, mCD = 0;
+        let skill1 = null;
+        let skill2 = null;
+
+        function startSystem() {
+            if (!player) { window.location.href = 'register.html'; return; }
+            const dungeon = JSON.parse(localStorage.getItem('activeDungeon')) || {id:1, rank:'E', name:'Goblin Nest'};
+
+            // Load equipped skills
+            skill1 = player.equippedSkills?.slot1 ? SKILL_DB[player.equippedSkills.slot1] : null;
+            skill2 = player.equippedSkills?.slot2 ? SKILL_DB[player.equippedSkills.slot2] : null;
+
+            // Update skill buttons
+            const sk1Btn = document.getElementById('skill1-btn');
+            const sk2Btn = document.getElementById('skill2-btn');
+
+            if (skill1) {
+                sk1Btn.innerText = `${skill1.name} (${skill1.mpCost} MP)`;
+                sk1Btn.style.borderColor = skill1.color;
+                sk1Btn.style.color = skill1.color;
+            } else {
+                sk1Btn.innerText = 'SKILL 1 — EMPTY';
+                sk1Btn.disabled = true;
+            }
+
+            if (skill2) {
+                sk2Btn.innerText = `${skill2.name} (${skill2.mpCost} MP)`;
+                sk2Btn.style.borderColor = skill2.color;
+                sk2Btn.style.color = skill2.color;
+            } else {
+                sk2Btn.innerText = 'SKILL 2 — EMPTY';
+                sk2Btn.disabled = true;
+            }
+
+            // Player stats
+            p = {
+                hp: player.stm * 12, maxHp: player.stm * 12,
+                mp: 0, maxMp: 100 + (player.level * 5),
+                str: player.str, spd: player.spd
+            };
+
+            // Monster stats
+            let diff = dungeon.id;
+            m = {
+                name: dungeon.name,
+                hp: 50 + (diff * 100), maxHp: 50 + (diff * 100),
+                str: 5 + (diff * 8),
+                goldReward: diff * 200,
+                xpReward: diff * 50
+            };
+
+            document.getElementById('p-name').innerText = player.name.toUpperCase();
+            document.getElementById('p-img').src = player.imgFull || '';
+            document.getElementById('m-name').innerText = m.name.toUpperCase();
+            document.getElementById('boss-title').innerText = `⚠ ${dungeon.rank}-RANK GATE ACTIVE`;
+
+            updatePotionCount();
+            logMsg(`Entered ${dungeon.name}! Prepare for battle!`, '#FFD700');
+            gameLoop();
+        }
+
+        function updatePotionCount() {
+            const pot = player.inventory?.find(i => i.id === 'p_red');
+            document.getElementById('pot-qty').innerText = pot ? pot.qty : 0;
+            document.getElementById('pot-btn').disabled = !pot || pot.qty <= 0;
+        }
+
+        function usePotion() {
+            const pot = player.inventory?.find(i => i.id === 'p_red');
+            if (pot && pot.qty > 0) {
+                pot.qty--;
+                p.hp = Math.min(p.maxHp, p.hp + (p.maxHp * 0.5));
+                logMsg('Used Healing Potion! +50% HP restored!', '#00FF44');
+                updatePotionCount();
+                saveToSystem();
+            }
+        }
+
+        function gameLoop() {
+            if (!battleActive) return;
+
+            if (p.mp < p.maxMp) p.mp += 0.2;
+            if (pCD < 100) pCD += (p.spd / 25) + 1.2;
+            if (mCD < 100) mCD += 1.5;
+
+            if (mCD >= 100) {
+                mCD = 0;
+                let dmg = Math.floor(m.str * (0.8 + Math.random() * 0.4));
+                p.hp -= dmg;
+                logMsg(`${m.name} hit you for ${dmg} damage!`, '#ff4444');
+                shake('p-img');
+                if (p.hp <= 0) { p.hp = 0; updateUI(); die(); return; }
+            }
+
+            updateUI();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function playerAttack() {
+            if (pCD < 100) return;
+            pCD = 0;
+            let dmg = Math.floor(p.str * (0.9 + Math.random() * 0.3));
+            m.hp -= dmg;
+            logMsg(`Strike! Dealt ${dmg} damage!`, '#11D2EF');
+            shake('m-img');
+            if (m.hp <= 0) { m.hp = 0; updateUI(); win(); }
+        }
+
+        function useSkill(slot) {
+            const skill = slot === 1 ? skill1 : skill2;
+            if (!skill) return;
+            if (p.mp < skill.mpCost) {
+                logMsg(`Not enough MP! Need ${skill.mpCost} MP`, '#ff4444');
+                return;
+            }
+            p.mp -= skill.mpCost;
+            let dmg = Math.floor(p.str * skill.dmgMult);
+            m.hp -= dmg;
+            logMsg(`${skill.msg} — ${dmg} damage!`, skill.color);
+            shake('m-img');
+            if (m.hp <= 0) { m.hp = 0; updateUI(); win(); }
+        }
+
+        function updateUI() {
+            document.getElementById('p-hp-bar').style.width = Math.max(0, p.hp / p.maxHp * 100) + '%';
+            document.getElementById('m-hp-bar').style.width = Math.max(0, m.hp / m.maxHp * 100) + '%';
+            document.getElementById('p-mp-bar').style.width = (p.mp / p.maxMp * 100) + '%';
+            document.getElementById('p-cd-bar').style.width = pCD + '%';
+            document.getElementById('m-cd-bar').style.width = mCD + '%';
+            document.getElementById('p-hp-text').innerText = `HP: ${Math.floor(p.hp)}/${p.maxHp}`;
+            document.getElementById('p-mp-text').innerText = `MP: ${Math.floor(p.mp)}/${p.maxMp}`;
+            document.getElementById('m-hp-text').innerText = `HP: ${Math.floor(m.hp)}/${m.maxHp}`;
+
+            document.getElementById('atk-btn').disabled = pCD < 100;
+            if (skill1) document.getElementById('skill1-btn').disabled = p.mp < skill1.mpCost;
+            if (skill2) document.getElementById('skill2-btn').disabled = p.mp < skill2.mpCost;
+        }
+
+        function logMsg(msg, color) {
+            const log = document.getElementById('log');
+            log.innerHTML += `<div style="color:${color}">> ${msg}</div>`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function shake(id) {
+            const img = document.getElementById(id);
+            img.style.transform = 'translateX(8px)';
+            setTimeout(() => img.style.transform = 'translateX(0)', 80);
+        }
+
+        function saveToSystem() {
+            localStorage.setItem(currentUser, JSON.stringify(player));
+        }
+
+        function win() {
+            battleActive = false;
+
+            // Add rewards — FIXED: using player.xp not player.exp
+            player.gold += m.goldReward;
+            player.xp += m.xpReward;
+
+            let leveledUp = false;
+            let newSkillUnlocked = null;
+
+            // Level up check
+           let xpNeeded = Math.floor(1000 * (player.level * player.level * 0.5));
+while (player.xp >= xpNeeded) {
+    player.xp -= xpNeeded;
+    player.level += 1;
+    xpNeeded = Math.floor(1000 * (player.level * player.level * 0.5));
+}
+
+            saveToSystem();
+
+            // Show victory screen
+            document.getElementById('reward-gold').innerText = `+${m.goldReward} GOLD`;
+            document.getElementById('reward-xp').innerText = `+${m.xpReward} XP`;
+
+            if (leveledUp) {
+                const skillMsg = document.getElementById('skill-unlock-msg');
+                skillMsg.style.display = 'block';
+                skillMsg.innerText = `⚡ LEVEL UP! Now LVL ${player.level} — Check inventory for new skills!`;
+            }
+
+            document.getElementById('victory-screen').style.display = 'flex';
+        }
+
+        function die() {
+            battleActive = false;
+            document.getElementById('death-screen').style.display = 'flex';
+        }
+    </script>
+</body>
+</html>

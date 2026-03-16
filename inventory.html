@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>System: Inventory</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; overflow-x: hidden; min-height: 100vh; }
+
+        .inventory-layout {
+            display: flex; min-height: 100vh; width: 100vw;
+            background: radial-gradient(circle at 75%, rgba(17,210,239,0.1) 0%, rgba(0,0,0,1) 100%);
+        }
+
+        /* LEFT SIDE */
+        .storage-side { width: 55%; padding: 40px 60px; z-index: 10; }
+
+        .inventory-header { border-bottom: 1px solid #11D2EF; padding-bottom: 10px; margin-bottom: 20px; }
+        .inventory-header h1 { font-size: 1.8rem; letter-spacing: 6px; color: #11D2EF; text-shadow: 0 0 10px #11D2EF; margin: 0; }
+        .gold-display { color: #FFD700; font-family: monospace; font-size: 1rem; margin-top: 5px; }
+
+        /* TABS */
+        .tab-row { display: flex; gap: 5px; margin-bottom: 20px; }
+        .tab-btn { background: #000; border: 1px solid #333; color: #555; padding: 8px 20px; cursor: pointer; font-size: 0.75rem; letter-spacing: 2px; }
+        .tab-btn.active { border-color: #11D2EF; color: #11D2EF; }
+
+        /* ARTIFACT GRID */
+        .grid-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; max-width: 420px; }
+
+        .item-slot {
+            aspect-ratio: 1/1; background: rgba(17,210,239,0.03);
+            border: 1px solid rgba(17,210,239,0.15); display: flex;
+            flex-direction: column; align-items: center; justify-content: center;
+            position: relative; cursor: pointer;
+        }
+        .item-slot:hover { border-color: #11D2EF; background: rgba(17,210,239,0.08); }
+        .item-slot img { width: 60%; height: 60%; object-fit: contain; }
+
+        .lock-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); display: flex; flex-direction: column;
+            align-items: center; justify-content: center; text-align: center;
+        }
+        .lock-tag { font-size: 0.5rem; color: #555; letter-spacing: 1px; }
+        .lock-status { font-size: 0.65rem; color: #ff4444; font-weight: bold; }
+        .lock-lvl { font-size: 0.55rem; color: #11D2EF; font-family: monospace; }
+
+        /* SKILLS SECTION */
+        .skills-list { display: flex; flex-direction: column; gap: 8px; max-width: 500px; }
+
+        .skill-card {
+            background: rgba(17,210,239,0.03); border: 1px solid rgba(17,210,239,0.2);
+            padding: 12px 15px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .skill-card.locked { opacity: 0.4; border-style: dashed; }
+        .skill-card.equipped-s1 { border-color: #00FF44; background: rgba(0,255,68,0.05); }
+        .skill-card.equipped-s2 { border-color: #9d4edd; background: rgba(157,78,221,0.05); }
+
+        .skill-info { flex: 1; }
+        .skill-title { font-size: 0.85rem; font-weight: bold; margin-bottom: 3px; }
+        .skill-meta { font-size: 0.65rem; color: #555; font-family: monospace; }
+
+        .skill-actions { display: flex; gap: 5px; }
+        .equip-btn {
+            background: none; border: 1px solid; padding: 4px 10px;
+            cursor: pointer; font-size: 0.65rem; font-weight: bold; letter-spacing: 1px;
+        }
+        .equip-btn.slot1 { border-color: #00FF44; color: #00FF44; }
+        .equip-btn.slot2 { border-color: #9d4edd; color: #9d4edd; }
+        .equip-btn:hover { opacity: 0.7; }
+        .equip-btn:disabled { border-color: #333; color: #333; cursor: not-allowed; }
+
+        .equipped-badge { font-size: 0.6rem; padding: 2px 6px; border: 1px solid; margin-right: 5px; }
+        .badge-s1 { border-color: #00FF44; color: #00FF44; }
+        .badge-s2 { border-color: #9d4edd; color: #9d4edd; }
+
+        /* EQUIPPED SLOTS DISPLAY */
+        .equipped-display {
+            background: rgba(0,0,0,0.5); border: 1px solid rgba(17,210,239,0.2);
+            padding: 15px; margin-bottom: 20px; max-width: 500px;
+        }
+        .equipped-title { font-size: 0.7rem; color: #555; font-family: monospace; letter-spacing: 2px; margin-bottom: 10px; }
+        .slot-row { display: flex; justify-content: space-between; align-items: center; padding: 8px; margin-bottom: 5px; border: 1px solid; }
+        .slot-row.s1 { border-color: rgba(0,255,68,0.3); }
+        .slot-row.s2 { border-color: rgba(157,78,221,0.3); }
+        .slot-name { font-size: 0.8rem; font-family: monospace; }
+        .unequip-btn { background: none; border: 1px solid #ff4444; color: #ff4444; padding: 2px 8px; cursor: pointer; font-size: 0.65rem; }
+
+        /* RIGHT SIDE */
+        .character-side { width: 45%; display: flex; align-items: flex-end; justify-content: center; position: relative; }
+        #char-img { height: 85vh; filter: drop-shadow(0 0 30px rgba(17,210,239,0.3)); }
+        .stats-overlay { position: absolute; top: 40px; right: 40px; text-align: right; }
+        .stats-overlay b { color: #11D2EF; font-size: 2rem; display: block; letter-spacing: 4px; }
+        .stats-overlay span { color: #fff; font-size: 1rem; font-family: monospace; opacity: 0.7; }
+
+        .back-btn { position: fixed; bottom: 30px; left: 60px; z-index: 9999; background: rgba(0,0,0,0.8); border: 1px solid #11D2EF; color: #11D2EF; padding: 12px 24px; cursor: pointer; font-weight: bold; letter-spacing: 2px; }
+        .back-btn:hover { background: #11D2EF; color: #000; }
+
+        /* Status message */
+        #status-msg { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(0,5,10,0.95); border: 1px solid #00FF44; color: #00FF44; padding: 10px 30px; font-family: monospace; font-size: 0.8rem; display: none; z-index: 9999; }
+    </style>
+</head>
+<body onload="initInventory()">
+
+    <div class="inventory-layout">
+        <div class="storage-side">
+            <div class="inventory-header">
+                <h1 id="p-name">STORAGE</h1>
+                <div class="gold-display">GOLD: <span id="p-gold">0</span>G</div>
+            </div>
+
+            <!-- TABS -->
+            <div class="tab-row">
+                <button class="tab-btn active" id="tab-artifacts" onclick="switchTab('artifacts')">🗡 ARTIFACTS</button>
+                <button class="tab-btn" id="tab-skills" onclick="switchTab('skills')">⚡ SKILLS</button>
+                <button class="tab-btn" id="tab-items" onclick="switchTab('items')">🎒 ITEMS</button>
+            </div>
+
+            <!-- ARTIFACTS TAB -->
+            <div id="section-artifacts">
+                <div class="grid-container" id="inv-grid"></div>
+            </div>
+
+            <!-- SKILLS TAB -->
+            <div id="section-skills" style="display:none;">
+                <div class="equipped-display">
+                    <div class="equipped-title">EQUIPPED SKILLS</div>
+                    <div class="slot-row s1">
+                        <span style="color:#00FF44; font-size:0.7rem;">SLOT 1:</span>
+                        <span class="slot-name" id="equipped-s1-name" style="color:#555;">— EMPTY —</span>
+                        <button class="unequip-btn" onclick="unequipSkill(1)">UNEQUIP</button>
+                    </div>
+                    <div class="slot-row s2">
+                        <span style="color:#9d4edd; font-size:0.7rem;">SLOT 2:</span>
+                        <span class="slot-name" id="equipped-s2-name" style="color:#555;">— EMPTY —</span>
+                        <button class="unequip-btn" onclick="unequipSkill(2)">UNEQUIP</button>
+                    </div>
+                </div>
+                <div class="skills-list" id="skills-list"></div>
+            </div>
+
+            <!-- ITEMS TAB -->
+            <div id="section-items" style="display:none;">
+                <div class="grid-container" id="items-grid"></div>
+            </div>
+        </div>
+
+        <div class="character-side">
+            <div class="stats-overlay">
+                <b id="p-class">CLASS</b>
+                <span id="p-lvl">LVL 1</span>
+            </div>
+            <img id="char-img" src="" alt="Vessel">
+        </div>
+    </div>
+
+    <button class="back-btn" onclick="window.location.href='home.html'">🏠 RETURN</button>
+    <div id="status-msg"></div>
+
+    <script>
+        // ============================================
+        // FULL SKILL DATABASE
+        // ============================================
+        const SKILL_DB = {
+            'gojo_e': { id:'gojo_e', name:'Basic Cursed Energy', rank:'E', mpCost:30, dmgMult:2, color:'#11D2EF', char:'Gojo' },
+            'gojo_d': { id:'gojo_d', name:'Red', rank:'D', mpCost:40, dmgMult:3, color:'#ff4444', char:'Gojo' },
+            'gojo_c': { id:'gojo_c', name:'Infinity', rank:'C', mpCost:50, dmgMult:4, color:'#fff', char:'Gojo' },
+            'gojo_b': { id:'gojo_b', name:'Blue', rank:'B', mpCost:65, dmgMult:5, color:'#11D2EF', char:'Gojo' },
+            'gojo_a': { id:'gojo_a', name:'Purple', rank:'A', mpCost:80, dmgMult:7, color:'#9d4edd', char:'Gojo' },
+            'gojo_s': { id:'gojo_s', name:'Six Eyes', rank:'S', mpCost:100, dmgMult:10, color:'#FFD700', char:'Gojo' },
+            'gojo_splus': { id:'gojo_splus', name:'Unlimited Void', rank:'S+', mpCost:150, dmgMult:15, color:'#fff', char:'Gojo' },
+            'garou_e': { id:'garou_e', name:'Martial Arts', rank:'E', mpCost:30, dmgMult:2, color:'#11D2EF', char:'Garou' },
+            'garou_d': { id:'garou_d', name:'Hero Hunt', rank:'D', mpCost:40, dmgMult:3, color:'#ff4444', char:'Garou' },
+            'garou_c': { id:'garou_c', name:'Monster Form', rank:'C', mpCost:50, dmgMult:4, color:'#9d4edd', char:'Garou' },
+            'garou_b': { id:'garou_b', name:'Instinct Copy', rank:'B', mpCost:65, dmgMult:5, color:'#FFD700', char:'Garou' },
+            'garou_a': { id:'garou_a', name:'God Slayer', rank:'A', mpCost:80, dmgMult:7, color:'#ff4444', char:'Garou' },
+            'garou_s': { id:'garou_s', name:'Cosmic Fear', rank:'S', mpCost:100, dmgMult:10, color:'#9d4edd', char:'Garou' },
+            'garou_splus': { id:'garou_splus', name:'Absolute Evil', rank:'S+', mpCost:150, dmgMult:15, color:'#ff4444', char:'Garou' },
+            'jinwoo_e': { id:'jinwoo_e', name:'Basic Combat', rank:'E', mpCost:30, dmgMult:2, color:'#11D2EF', char:'Jin-Woo' },
+            'jinwoo_d': { id:'jinwoo_d', name:'Shadow Pull', rank:'D', mpCost:40, dmgMult:3, color:'#9d4edd', char:'Jin-Woo' },
+            'jinwoo_c': { id:'jinwoo_c', name:"Ruler's Hand", rank:'C', mpCost:50, dmgMult:4, color:'#11D2EF', char:'Jin-Woo' },
+            'jinwoo_b': { id:'jinwoo_b', name:'Shadow Army', rank:'B', mpCost:65, dmgMult:5, color:'#9d4edd', char:'Jin-Woo' },
+            'jinwoo_a': { id:'jinwoo_a', name:"Monarch's Domain", rank:'A', mpCost:80, dmgMult:7, color:'#9d4edd', char:'Jin-Woo' },
+            'jinwoo_s': { id:'jinwoo_s', name:'Arise', rank:'S', mpCost:100, dmgMult:10, color:'#9d4edd', char:'Jin-Woo' },
+            'jinwoo_splus': { id:'jinwoo_splus', name:'Shadow Monarch', rank:'S+', mpCost:150, dmgMult:15, color:'#9d4edd', char:'Jin-Woo' },
+            'asta_e': { id:'asta_e', name:'Sword Strike', rank:'E', mpCost:30, dmgMult:2, color:'#11D2EF', char:'Asta' },
+            'asta_d': { id:'asta_d', name:'Anti-Magic', rank:'D', mpCost:40, dmgMult:3, color:'#555', char:'Asta' },
+            'asta_c': { id:'asta_c', name:'Black Asta', rank:'C', mpCost:50, dmgMult:4, color:'#aaa', char:'Asta' },
+            'asta_b': { id:'asta_b', name:'Demon Form', rank:'B', mpCost:65, dmgMult:5, color:'#ff4444', char:'Asta' },
+            'asta_a': { id:'asta_a', name:'Black Divider', rank:'A', mpCost:80, dmgMult:7, color:'#555', char:'Asta' },
+            'asta_s': { id:'asta_s', name:'Infinite Slash', rank:'S', mpCost:100, dmgMult:10, color:'#aaa', char:'Asta' },
+            'asta_splus': { id:'asta_splus', name:'Unite Mode', rank:'S+', mpCost:150, dmgMult:15, color:'#ff4444', char:'Asta' },
+            'toji_e': { id:'toji_e', name:'Basic Strike', rank:'E', mpCost:30, dmgMult:2, color:'#11D2EF', char:'Toji' },
+            'toji_d': { id:'toji_d', name:'Heavy Blow', rank:'D', mpCost:40, dmgMult:3, color:'#ff4444', char:'Toji' },
+            'toji_c': { id:'toji_c', name:'Inverted Spear', rank:'C', mpCost:50, dmgMult:4, color:'#FFD700', char:'Toji' },
+            'toji_b': { id:'toji_b', name:'Playful Cloud', rank:'B', mpCost:65, dmgMult:5, color:'#ff4444', char:'Toji' },
+            'toji_a': { id:'toji_a', name:'Soul Split', rank:'A', mpCost:80, dmgMult:7, color:'#9d4edd', char:'Toji' },
+            'toji_s': { id:'toji_s', name:'Zero Magic', rank:'S', mpCost:100, dmgMult:10, color:'#fff', char:'Toji' },
+            'toji_splus': { id:'toji_splus', name:'Heavenly Restriction', rank:'S+', mpCost:150, dmgMult:15, color:'#fff', char:'Toji' },
+            'ippo_e': { id:'ippo_e', name:'Jab', rank:'E', mpCost:30, dmgMult:2, color:'#11D2EF', char:'Ippo' },
+            'ippo_d': { id:'ippo_d', name:'Straight', rank:'D', mpCost:40, dmgMult:3, color:'#FFD700', char:'Ippo' },
+            'ippo_c': { id:'ippo_c', name:'Liver Blow', rank:'C', mpCost:50, dmgMult:4, color:'#ff4444', char:'Ippo' },
+            'ippo_b': { id:'ippo_b', name:'Dempsey Roll', rank:'B', mpCost:65, dmgMult:5, color:'#FFD700', char:'Ippo' },
+            'ippo_a': { id:'ippo_a', name:'Gazelle Punch', rank:'A', mpCost:80, dmgMult:7, color:'#11D2EF', char:'Ippo' },
+            'ippo_s': { id:'ippo_s', name:'Smash', rank:'S', mpCost:100, dmgMult:10, color:'#FFD700', char:'Ippo' },
+            'ippo_splus': { id:'ippo_splus', name:'Flicker', rank:'S+', mpCost:150, dmgMult:15, color:'#fff', char:'Ippo' },
+            'tanjiro_e': { id:'tanjiro_e', name:'Water Breathing', rank:'E', mpCost:30, dmgMult:2, color:'#11D2EF', char:'Tanjiro' },
+            'tanjiro_d': { id:'tanjiro_d', name:'Constant Flux', rank:'D', mpCost:40, dmgMult:3, color:'#11D2EF', char:'Tanjiro' },
+            'tanjiro_c': { id:'tanjiro_c', name:'Whirlpool', rank:'C', mpCost:50, dmgMult:4, color:'#11D2EF', char:'Tanjiro' },
+            'tanjiro_b': { id:'tanjiro_b', name:'Blessed Rain', rank:'B', mpCost:65, dmgMult:5, color:'#11D2EF', char:'Tanjiro' },
+            'tanjiro_a': { id:'tanjiro_a', name:'Waltz', rank:'A', mpCost:80, dmgMult:7, color:'#FFD700', char:'Tanjiro' },
+            'tanjiro_s': { id:'tanjiro_s', name:'Hinokami Kagura', rank:'S', mpCost:100, dmgMult:10, color:'#ff4444', char:'Tanjiro' },
+            'tanjiro_splus': { id:'tanjiro_splus', name:'Sun Breathing', rank:'S+', mpCost:150, dmgMult:15, color:'#FFD700', char:'Tanjiro' },
+            'thorfinn_e': { id:'thorfinn_e', name:'Knife Throw', rank:'E', mpCost:30, dmgMult:2, color:'#11D2EF', char:'Thorfinn' },
+            'thorfinn_d': { id:'thorfinn_d', name:'Ambush', rank:'D', mpCost:40, dmgMult:3, color:'#555', char:'Thorfinn' },
+            'thorfinn_c': { id:'thorfinn_c', name:'Spin Attack', rank:'C', mpCost:50, dmgMult:4, color:'#FFD700', char:'Thorfinn' },
+            'thorfinn_b': { id:'thorfinn_b', name:'Snake Pit', rank:'B', mpCost:65, dmgMult:5, color:'#00FF44', char:'Thorfinn' },
+            'thorfinn_a': { id:'thorfinn_a', name:'Falling Star', rank:'A', mpCost:80, dmgMult:7, color:'#FFD700', char:'Thorfinn' },
+            'thorfinn_s': { id:'thorfinn_s', name:'Sword of Thor', rank:'S', mpCost:100, dmgMult:10, color:'#FFD700', char:'Thorfinn' },
+            'thorfinn_splus': { id:'thorfinn_splus', name:"Warrior's Code", rank:'S+', mpCost:150, dmgMult:15, color:'#fff', char:'Thorfinn' },
+        };
+
+        const CHAR_PREFIX = {
+            'Jin-Woo': 'jinwoo', 'Asta': 'asta', 'Gojo': 'gojo',
+            'Toji': 'toji', 'Ippo': 'ippo', 'Garou': 'garou',
+            'Tanjiro': 'tanjiro', 'Thorfinn': 'thorfinn'
+        };
+
+        const RANK_ORDER = ['E', 'D', 'C', 'B', 'A', 'S', 'S+'];
+
+        function getRank(level) {
+            if (level >= 95) return 'S+';
+            if (level >= 80) return 'S';
+            if (level >= 60) return 'A';
+            if (level >= 40) return 'B';
+            if (level >= 20) return 'C';
+            if (level >= 10) return 'D';
+            return 'E';
+        }
+
+        const artifactDB = {
+            'Jin-Woo': [
+                { name:'Knight Killer', lvl:5, rank:'E', img:'images/jw1.png' },
+                { name:'Baruka Dagger', lvl:15, rank:'E+', img:'images/jw2.png' },
+                { name:'Shadow Armor', lvl:25, rank:'D', img:'images/jw3.png' },
+                { name:"Kamish's Wrath", lvl:45, rank:'B', img:'images/jw4.png' },
+                { name:'Shadow Extract', lvl:80, rank:'S', img:'images/jw5.png' }
+            ],
+            'Asta': [
+                { name:'Demon-Slayer Sword', lvl:5, rank:'E', img:'images/as1.png' },
+                { name:'Demon-Dweller Sword', lvl:15, rank:'E+', img:'images/as2.png' },
+                { name:'Black Bull Cloak', lvl:25, rank:'D', img:'images/as3.png' },
+                { name:'Demon-Destroyer Sword', lvl:45, rank:'B', img:'images/as4.png' },
+                { name:'Anti-Magic Grimoire', lvl:80, rank:'S', img:'images/as5.png' }
+            ],
+            'Gojo': [
+                { name:'Blindfold', lvl:5, rank:'E', img:'images/gj1.png' },
+                { name:'Cursed Talisman', lvl:20, rank:'D', img:'images/gj2.png' },
+                { name:'Infinity Cape', lvl:40, rank:'B', img:'images/gj3.png' },
+                { name:'Prison Realm', lvl:60, rank:'A', img:'images/gj4.png' },
+                { name:'Six Eyes', lvl:90, rank:'S+', img:'images/gj5.png' }
+            ],
+            'Toji': [
+                { name:'Inverted Spear of Heaven', lvl:10, rank:'E', img:'images/tj1.png' },
+                { name:'Playful Cloud', lvl:25, rank:'D', img:'images/tj2.png' },
+                { name:'Cursed Worm', lvl:35, rank:'D+', img:'images/tj3.png' },
+                { name:'Soul Splitter', lvl:55, rank:'B', img:'images/tj4.png' },
+                { name:'Chain of 1000', lvl:80, rank:'S', img:'images/tj5.png' }
+            ],
+            'Ippo': [
+                { name:'New Gloves', lvl:5, rank:'E', img:'images/ip1.png' },
+                { name:'Headgear', lvl:15, rank:'E+', img:'images/ip2.png' },
+                { name:'Dempsey Wraps', lvl:30, rank:'D', img:'images/ip3.png' },
+                { name:'Heavy Bag', lvl:50, rank:'B', img:'images/ip4.png' },
+                { name:'Champion Belt', lvl:75, rank:'A', img:'images/ip5.png' }
+            ],
+            'Garou': [
+                { name:'Martial Gi', lvl:5, rank:'E', img:'images/gr1.png' },
+                { name:'Hero Hunter Badge', lvl:20, rank:'D', img:'images/gr2.png' },
+                { name:'Silver Fang Scarf', lvl:40, rank:'B', img:'images/gr3.png' },
+                { name:'Monster Shell', lvl:65, rank:'A', img:'images/gr4.png' },
+                { name:'God Slayer Fist', lvl:90, rank:'S+', img:'images/gr5.png' }
+            ],
+            'Tanjiro': [
+                { name:'Nichirin Blade', lvl:5, rank:'E', img:'images/tn1.png' },
+                { name:'Warding Mask', lvl:15, rank:'E+', img:'images/tn2.png' },
+                { name:'Nezuko Box', lvl:35, rank:'D', img:'images/tn3.png' },
+                { name:'Hanafuda Earrings', lvl:55, rank:'B', img:'images/tn4.png' },
+                { name:'Sun Breath Scroll', lvl:85, rank:'S', img:'images/tn5.png' }
+            ],
+            'Thorfinn': [
+                { name:"Father's Dagger", lvl:5, rank:'E', img:'images/th1.png' },
+                { name:'Viking Daggers', lvl:20, rank:'D', img:'images/th2.png' },
+                { name:'Fur Cloak', lvl:40, rank:'B', img:'images/th3.png' },
+                { name:'Throwing Knife Set', lvl:60, rank:'A', img:'images/th4.png' },
+                { name:'Vinland Map', lvl:80, rank:'S', img:'images/th5.png' }
+            ]
+        };
+
+        const currentUser = localStorage.getItem('currentUser');
+        let player = JSON.parse(localStorage.getItem(currentUser));
+        let activeTab = 'artifacts';
+
+        function initInventory() {
+            if (!currentUser) { window.location.href = 'register.html'; return; }
+            if (!player.equippedSkills) player.equippedSkills = { slot1: null, slot2: null };
+
+            document.getElementById('p-name').innerText = player.name.toUpperCase() + "'S STORAGE";
+            document.getElementById('p-gold').innerText = player.gold.toLocaleString();
+            document.getElementById('p-class').innerText = player.class || 'HUNTER';
+            document.getElementById('p-lvl').innerText = 'LEVEL ' + player.level;
+            document.getElementById('char-img').src = player.imgFull || '';
+
+            renderArtifacts();
+            renderSkills();
+            renderItems();
+        }
+
+        function switchTab(tab) {
+            activeTab = tab;
+            document.getElementById('section-artifacts').style.display = tab === 'artifacts' ? 'block' : 'none';
+            document.getElementById('section-skills').style.display = tab === 'skills' ? 'block' : 'none';
+            document.getElementById('section-items').style.display = tab === 'items' ? 'block' : 'none';
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + tab).classList.add('active');
+        }
+
+        function renderArtifacts() {
+            const grid = document.getElementById('inv-grid');
+            grid.innerHTML = '';
+            const myArtifacts = artifactDB[player.class] || [];
+
+            myArtifacts.forEach(item => {
+                const isLocked = player.level < item.lvl;
+                grid.innerHTML += `
+                    <div class="item-slot">
+                        <img src="${item.img}" onerror="this.style.display='none'">
+                        <div style="font-size:0.5rem; color:#11D2EF; text-align:center; padding:2px;">${item.name}</div>
+                        ${isLocked ? `
+                            <div class="lock-overlay">
+                                <div class="lock-tag">RANK ${item.rank}</div>
+                                <div class="lock-status">LOCKED</div>
+                                <div class="lock-lvl">LVL ${item.lvl}</div>
+                            </div>` : ''}
+                    </div>`;
+            });
+
+            // Fill empty slots
+            for (let i = myArtifacts.length; i < 16; i++) {
+                grid.innerHTML += `<div class="item-slot"></div>`;
+            }
+        }
+
+        function renderSkills() {
+            const list = document.getElementById('skills-list');
+            list.innerHTML = '';
+
+            const prefix = CHAR_PREFIX[player.class];
+            if (!prefix) { list.innerHTML = '<p style="color:#555;">Select a character first</p>'; return; }
+
+            const currentRank = getRank(player.level);
+            const currentRankIndex = RANK_ORDER.indexOf(currentRank);
+
+            // Update equipped display
+            const s1 = player.equippedSkills.slot1;
+            const s2 = player.equippedSkills.slot2;
+            document.getElementById('equipped-s1-name').innerText = s1 && SKILL_DB[s1] ? SKILL_DB[s1].name : '— EMPTY —';
+            document.getElementById('equipped-s2-name').innerText = s2 && SKILL_DB[s2] ? SKILL_DB[s2].name : '— EMPTY —';
+            document.getElementById('equipped-s1-name').style.color = s1 && SKILL_DB[s1] ? SKILL_DB[s1].color : '#555';
+            document.getElementById('equipped-s2-name').style.color = s2 && SKILL_DB[s2] ? SKILL_DB[s2].color : '#555';
+
+            RANK_ORDER.forEach((rank, i) => {
+                const skillId = `${prefix}_${rank.toLowerCase().replace('+', 'plus')}`;
+                const skill = SKILL_DB[skillId];
+                if (!skill) return;
+
+                const isLocked = i > currentRankIndex;
+                const isS1 = player.equippedSkills.slot1 === skillId;
+                const isS2 = player.equippedSkills.slot2 === skillId;
+
+                let cardClass = 'skill-card';
+                if (isLocked) cardClass += ' locked';
+                if (isS1) cardClass += ' equipped-s1';
+                if (isS2) cardClass += ' equipped-s2';
+
+                list.innerHTML += `
+                    <div class="${cardClass}">
+                        <div class="skill-info">
+                            <div class="skill-title" style="color:${skill.color}">
+                                ${isS1 ? '<span class="equipped-badge badge-s1">SLOT 1</span>' : ''}
+                                ${isS2 ? '<span class="equipped-badge badge-s2">SLOT 2</span>' : ''}
+                                ${skill.name}
+                            </div>
+                            <div class="skill-meta">
+                                RANK ${skill.rank} | ${skill.mpCost} MP | ${skill.dmgMult}x DMG
+                                ${isLocked ? ' | 🔒 LOCKED' : ' | ✅ UNLOCKED'}
+                            </div>
+                        </div>
+                        ${!isLocked ? `
+                        <div class="skill-actions">
+                            <button class="equip-btn slot1" onclick="equipSkill('${skillId}', 1)" ${isS1 ? 'disabled' : ''}>S1</button>
+                            <button class="equip-btn slot2" onclick="equipSkill('${skillId}', 2)" ${isS2 ? 'disabled' : ''}>S2</button>
+                        </div>` : '<div style="color:#555; font-size:0.7rem; padding:5px;">LOCKED</div>'}
+                    </div>
+                `;
+            });
+        }
+
+        function renderItems() {
+            const grid = document.getElementById('items-grid');
+            grid.innerHTML = '';
+            const customInv = player.inventory || [];
+
+            if (customInv.length === 0) {
+                grid.innerHTML = '<p style="color:#333; font-family:monospace; font-size:0.8rem; grid-column:1/-1;">No items in storage. Visit the shop!</p>';
+                return;
+            }
+
+            customInv.forEach(item => {
+                grid.innerHTML += `
+                    <div class="item-slot">
+                        <img src="${item.image}" onerror="this.style.display='none'">
+                        <div style="font-size:0.55rem; color:#11D2EF; text-align:center; padding:2px;">${item.name}</div>
+                        <div style="position:absolute; bottom:3px; right:5px; font-size:0.65rem; color:#FFD700;">x${item.qty}</div>
+                    </div>`;
+            });
+
+            for (let i = customInv.length; i < 8; i++) {
+                grid.innerHTML += `<div class="item-slot"></div>`;
+            }
+        }
+
+        function equipSkill(skillId, slot) {
+            if (!player.equippedSkills) player.equippedSkills = { slot1: null, slot2: null };
+            
+            if (slot === 1) player.equippedSkills.slot1 = skillId;
+            else player.equippedSkills.slot2 = skillId;
+
+            localStorage.setItem(currentUser, JSON.stringify(player));
+            const skill = SKILL_DB[skillId];
+            showStatus(`✅ ${skill.name} equipped to Slot ${slot}!`);
+            renderSkills();
+        }
+
+        function unequipSkill(slot) {
+            if (!player.equippedSkills) return;
+            if (slot === 1) player.equippedSkills.slot1 = null;
+            else player.equippedSkills.slot2 = null;
+            localStorage.setItem(currentUser, JSON.stringify(player));
+            showStatus(`Slot ${slot} cleared!`);
+            renderSkills();
+        }
+
+        function showStatus(msg) {
+            const el = document.getElementById('status-msg');
+            el.innerText = msg;
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 2000);
+        }
+    </script>
+</body>
+</html>

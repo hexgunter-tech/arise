@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>System: World Map</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            background-color: #050505;
+            color: #fff;
+            margin: 0;
+            overflow: hidden; 
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .map-container {
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(circle at center, #111 0%, #000 100%);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .path-line {
+            position: absolute;
+            width: 2px;
+            background: linear-gradient(to top, #333, #11D2EF, #9d4edd);
+            height: 70vh;
+            z-index: 1;
+        }
+
+        .nodes-wrapper {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column-reverse; 
+            align-items: center;
+            height: 70vh;
+            justify-content: space-between;
+        }
+
+        .gate-node {
+            width: 70px;
+            height: 70px;
+            background: #000;
+            border: 2px solid #333;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            position: relative;
+            transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 0 10px rgba(0,0,0,1);
+        }
+
+        .gate-node:hover:not(.locked) {
+            transform: scale(1.2) !important;
+            z-index: 10;
+        }
+
+        .gate-node.rank-E { border-color: #fff; box-shadow: 0 0 5px #fff; }
+        .gate-node.rank-D { border-color: #00FF44; box-shadow: 0 0 5px #00FF44; }
+        .gate-node.rank-C { border-color: #11D2EF; box-shadow: 0 0 8px #11D2EF; }
+        .gate-node.rank-B { border-color: #FFD700; box-shadow: 0 0 8px #FFD700; }
+        .gate-node.rank-A { border-color: #f44; box-shadow: 0 0 12px #f44; }
+        .gate-node.rank-S { border-color: #9d4edd; box-shadow: 0 0 20px #9d4edd; }
+
+        .gate-node.locked {
+            opacity: 0.4;
+            filter: grayscale(1);
+            cursor: not-allowed;
+            border-style: dotted;
+        }
+
+        .gate-icon { font-size: 1.8rem; }
+
+        .rank-tag {
+            position: absolute;
+            top: -15px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            background: #000;
+            padding: 2px 6px;
+            border: 1px solid inherit;
+        }
+
+        .node-container:nth-child(even) .gate-node { transform: translateX(60px); }
+        .node-container:nth-child(odd) .gate-node { transform: translateX(-60px); }
+
+        .gate-label {
+            position: absolute;
+            white-space: nowrap;
+            font-size: 0.8rem;
+            color: #888;
+            font-family: monospace;
+        }
+        .node-container:nth-child(even) .gate-label { left: -140px; text-align: right; }
+        .node-container:nth-child(odd) .gate-label { right: -140px; text-align: left; }
+
+        .locked-msg { color: #ff4444; font-size: 0.6rem; display: block; }
+
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body onload="loadMap()">
+
+    <button class="small-btn back-btn" onclick="window.location.href='home.html'">🏠 BACK</button>
+
+    <div class="map-container">
+        <h2 style="color:#11D2EF; letter-spacing:4px; margin-bottom: 40px;">WORLD CAMPAIGN</h2>
+        
+        <div class="path-line"></div>
+        
+        <div class="nodes-wrapper" id="mission-nodes">
+            </div>
+    </div>
+
+    <script>
+        // --- LOGGED-IN SYSTEM DATA ---
+        const currentUser = localStorage.getItem('currentUser');
+        const player = JSON.parse(localStorage.getItem(currentUser));
+
+        const missions = [
+            { id: 1, name: "Goblin Nest", rank: "E", icon: "👹", lvl: 1 },
+            { id: 2, name: "Spider Lair", rank: "D", icon: "🕷️", lvl: 15 },
+            { id: 3, name: "Orc Fortress", rank: "C", icon: "⚔️", lvl: 35 },
+            { id: 4, name: "Ice Gate", rank: "B", icon: "❄️", lvl: 55 },
+            { id: 5, name: "Demon Castle", rank: "A", icon: "🔥", lvl: 80 },
+            { id: 6, name: "Monarch Altar", rank: "S", icon: "👑", lvl: 100 }
+        ];
+
+        function loadMap() {
+            // Safety: Redirect if no player is logged in
+            if (!currentUser || !player) {
+                window.location.href = 'register.html';
+                return;
+            }
+
+            // GET LEVEL FROM PLAYER OBJECT
+            const playerLvl = player.level || 1; 
+            const container = document.getElementById('mission-nodes');
+            container.innerHTML = ""; // Clear existing
+            
+            missions.forEach(m => {
+                const isLocked = playerLvl < m.lvl;
+                
+                container.innerHTML += `
+                    <div class="node-container" style="position:relative;">
+                        <div class="gate-node rank-${m.rank} ${isLocked ? 'locked' : ''}" 
+                             onclick="startMission(${m.id}, ${isLocked})">
+                            <span class="rank-tag">${m.rank}-RANK</span>
+                            <span class="gate-icon">${m.icon}</span>
+                            
+                            <div class="gate-label">
+                                <b>${m.name}</b><br>
+                                ${isLocked ? `<span class="locked-msg">LOCKED: LVL ${m.lvl}</span>` : `<span style="color:#00FF44">READY</span>`}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function startMission(id, isLocked) {
+            if (isLocked) return;
+            const selected = missions.find(m => m.id === id);
+            
+            // Save active dungeon to local storage
+            localStorage.setItem('activeDungeon', JSON.stringify(selected));
+            window.location.href = 'battle.html';
+        }
+    </script>
+</body>
+</html>

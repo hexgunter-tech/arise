@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta charset="UTF-8">
+    <title>System: Status</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        * { animation: none !important; transition: none !important; margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: url('images/background.png') no-repeat center center fixed; background-size: cover; overflow: hidden; height: 100vh; color: #fff; font-family: 'Segoe UI', sans-serif; }
+
+        body::before {
+            content: " "; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.2) 50%),
+                        linear-gradient(90deg, rgba(17,210,239,0.03), rgba(17,210,239,0.01), rgba(17,210,239,0.03));
+            z-index: 100; background-size: 100% 2px, 3px 100%; pointer-events: none;
+        }
+
+        .name-tag-container { position: absolute; top: 8%; right: 10%; text-align: right; z-index: 10; }
+        #display-player-name { color: #11D2EF; font-size: 3rem; font-weight: 900; letter-spacing: 5px; text-shadow: 0 0 15px #11D2EF; }
+        #display-player-lvl { background: #11D2EF; color: #000; padding: 2px 15px; font-weight: bold; margin-top: 5px; display: inline-block; }
+
+        #battle-card {
+            position: absolute; top: 50%; right: 165px; width: 320px;
+            background: rgba(0,0,0,0.9); border: 1px solid #11D2EF;
+            padding: 20px; z-index: 10; display: none;
+            transform: translateY(-50%);
+        }
+
+        .card-header { display: flex; justify-content: space-between; color: #11D2EF; font-family: monospace; font-size: 0.8rem; border-bottom: 1px solid rgba(17,210,239,0.3); padding-bottom: 8px; margin-bottom: 12px; }
+        
+        .rank-badge { 
+            padding: 2px 8px; font-weight: bold; font-size: 0.75rem;
+            border: 1px solid; display: inline-block; margin-bottom: 10px;
+        }
+
+        .skills-section { margin: 10px 0; }
+        .skills-label { font-size: 0.6rem; color: #555; font-family: monospace; letter-spacing: 2px; margin-bottom: 8px; }
+        
+        .skill-slot {
+            background: rgba(17,210,239,0.05); border: 1px solid rgba(17,210,239,0.2);
+            padding: 8px 12px; margin-bottom: 6px; display: flex;
+            justify-content: space-between; align-items: center;
+            font-family: monospace; font-size: 0.8rem;
+        }
+
+        .skill-slot.empty { color: #333; border-style: dashed; }
+        .skill-name { color: #00FF44; }
+        .skill-mp { color: #11D2EF; font-size: 0.7rem; }
+
+        .card-footer { display: flex; justify-content: space-between; margin-top: 12px; background: rgba(17,210,239,0.05); padding: 10px; border-top: 1px solid rgba(17,210,239,0.2); }
+        .footer-stat { display: flex; flex-direction: column; align-items: center; }
+        .footer-stat span { font-size: 0.6rem; color: #11D2EF; }
+        .footer-stat b { font-size: 1rem; }
+
+        .char-container { position: absolute; bottom: 0; right: 0; width: 50%; height: 90vh; display: flex; justify-content: center; align-items: flex-end; z-index: 5; }
+        #main-char-img { max-height: 95%; filter: drop-shadow(0 0 20px rgba(17,210,239,0.4)); cursor: pointer; }
+
+        .side-menu { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 10px; z-index: 200; width: 200px; }
+        .small-btn { width: 100%; height: 50px; background: #000; border: 1px solid #11D2EF; color: #11D2EF; cursor: pointer; font-size: 1rem; display: flex; align-items: center; padding-left: 15px; gap: 10px; text-align: left; }
+        .small-btn:hover { background: #11D2EF; color: #000; }
+
+        .xp-display { position: absolute; bottom: 30px; left: 220px; width: 350px; }
+        .xp-bar { width: 100%; height: 10px; background: #111; border: 1px solid #333; margin-top: 5px; }
+        #xp-fill { height: 100%; background: #11D2EF; width: 0%; box-shadow: 0 0 10px #11D2EF; }
+
+        /* New skill unlock notification */
+        #skill-notify {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,5,10,0.95); border: 1px solid #00FF44;
+            color: #00FF44; padding: 12px 30px; font-weight: bold;
+            letter-spacing: 2px; display: none; z-index: 1000;
+            box-shadow: 0 0 20px rgba(0,255,68,0.4); font-family: monospace;
+        }
+    </style>
+</head>
+<body onload="initHome()">
+
+    <div class="name-tag-container">
+        <h1 id="display-player-name">HUNTER</h1>
+        <div id="display-player-lvl">LVL 1</div>
+    </div>
+
+    <div id="battle-card">
+        <div class="card-header">
+            <span id="card-rank">RANK: E</span>
+            <span id="card-class">CLASS: NONE</span>
+        </div>
+        <div class="skills-section">
+            <div class="skills-label">EQUIPPED SKILLS:</div>
+            <div class="skill-slot" id="slot1-display">
+                <span class="skill-name">— EMPTY SLOT 1 —</span>
+                <span class="skill-mp"></span>
+            </div>
+            <div class="skill-slot" id="slot2-display">
+                <span class="skill-name">— EMPTY SLOT 2 —</span>
+                <span class="skill-mp"></span>
+            </div>
+            <p style="font-size:0.6rem; color:#333; font-family:monospace; margin-top:5px;">
+                * EQUIP SKILLS FROM INVENTORY
+            </p>
+        </div>
+        <div class="card-footer">
+            <div class="footer-stat"><span>STR</span><b id="card-str">10</b></div>
+            <div class="footer-stat"><span>SPD</span><b id="card-spd">10</b></div>
+            <div class="footer-stat"><span>STM</span><b id="card-stm">10</b></div>
+        </div>
+    </div>
+
+    <div class="char-container">
+        <img id="main-char-img" src="" alt="Character" onclick="toggleCard()">
+    </div>
+
+    <div class="xp-display">
+        <div style="color:#FFD700; font-family:monospace; margin-bottom:5px;">GOLD: <span id="p-gold">0</span>G</div>
+        <div class="xp-bar" onclick="toggleXPInfo()" style="cursor:pointer;"><div id="xp-fill"></div></div>
+<div id="xp-text" onclick="toggleXPInfo()" style="font-size:0.7rem; margin-top:5px; color:#555; font-family:monospace; cursor:pointer;">0 / 1000 XP</div>
+    </div>
+
+    <nav class="side-menu">
+        <button class="small-btn" onclick="window.location.href='dungeon.html'">⛩️ Dungeon</button>
+        <button class="small-btn" onclick="window.location.href='workout.html'">🔩 Workout</button>
+        <button class="small-btn" onclick="window.location.href='inventory.html'">🎒 Inventory</button>
+        <button class="small-btn" onclick="window.location.href='shop.html'">💰 Shop</button>
+        <button class="small-btn" onclick="window.location.href='leaderboard.html'">🏆 Leaderboard</button>
+        <button class="small-btn" onclick="logout()" style="border-color:#ff4444; color:#ff4444; width:50px; height:35px; font-size:0.6rem; padding:5px;">🚪</button>
+    </nav>
+
+    <div id="skill-notify"></div>
+
+    <script>
+        // ============================================
+        // COMPLETE SKILL DATABASE
+        // ============================================
+        const SKILL_DB = {
+            // GOJO SKILLS
+            'gojo_e': { id:'gojo_e', name:'Basic Cursed Energy', rank:'E', mpCost:30, dmgMult:2, color:'#11D2EF', msg:'Gojo releases basic cursed energy!', char:'Gojo' },
+            'gojo_d': { id:'gojo_d', name:'Red', rank:'D', mpCost:40, dmgMult:3, color:'#ff4444', msg:'Gojo activates Cursed Technique Lapse: Red!', char:'Gojo' },
+            'gojo_c': { id:'gojo_c', name:'Infinity', rank:'C', mpCost:50, dmgMult:4, color:'#fff', msg:'Gojo unleashes Infinity — all attacks slowed!', char:'Gojo' },
+            'gojo_b': { id:'gojo_b', name:'Blue', rank:'B', mpCost:65, dmgMult:5, color:'#11D2EF', msg:'Gojo activates Cursed Technique Reversal: Blue!', char:'Gojo' },
+            'gojo_a': { id:'gojo_a', name:'Purple', rank:'A', mpCost:80, dmgMult:7, color:'#9d4edd', msg:'HOLLOW PURPLE — Imaginary Mass obliterates everything!', char:'Gojo' },
+            'gojo_s': { id:'gojo_s', name:'Six Eyes', rank:'S', mpCost:100, dmgMult:10, color:'#FFD700', msg:'Six Eyes activated — Gojo sees everything!', char:'Gojo' },
+            'gojo_splus': { id:'gojo_splus', name:'Unlimited Void', rank:'S+', mpCost:150, dmgMult:15, color:'#fff', msg:'DOMAIN EXPANSION: UNLIMITED VOID! Infinite information destroys the mind!', char:'Gojo' },
+
+            // GAROU SKILLS
+            'garou_e': { id:'garou_e', name:'Martial Arts', rank:'E', mpCost:30, dmgMult:2, color:'#11D2EF', msg:'Garou uses basic martial arts!', char:'Garou' },
+            'garou_d': { id:'garou_d', name:'Hero Hunt', rank:'D', mpCost:40, dmgMult:3, color:'#ff4444', msg:'Garou activates Hero Hunting stance!', char:'Garou' },
+            'garou_c': { id:'garou_c', name:'Monster Form', rank:'C', mpCost:50, dmgMult:4, color:'#9d4edd', msg:'Garou transforms into Monster form!', char:'Garou' },
+            'garou_b': { id:'garou_b', name:'Instinct Copy', rank:'B', mpCost:65, dmgMult:5, color:'#FFD700', msg:'Garou copies the enemy attack pattern!', char:'Garou' },
+            'garou_a': { id:'garou_a', name:'God Slayer', rank:'A', mpCost:80, dmgMult:7, color:'#ff4444', msg:'GOD SLAYER FIST — Garou strikes with divine force!', char:'Garou' },
+            'garou_s': { id:'garou_s', name:'Cosmic Fear', rank:'S', mpCost:100, dmgMult:10, color:'#9d4edd', msg:'Garou radiates Cosmic Fear Mode!', char:'Garou' },
+            'garou_splus': { id:'garou_splus', name:'Absolute Evil', rank:'S+', mpCost:150, dmgMult:15, color:'#000', msg:'ABSOLUTE EVIL — Garou becomes the embodiment of destruction!', char:'Garou' },
+
+            // JIN-WOO SKILLS
+            'jinwoo_e': { id:'jinwoo_e', name:'Basic Combat', rank:'E', mpCost:30, dmgMult:2, color:'#11D2EF', msg:'Sung Jin-Woo attacks!', char:'Jin-Woo' },
+            'jinwoo_d': { id:'jinwoo_d', name:'Shadow Pull', rank:'D', mpCost:40, dmgMult:3, color:'#9d4edd', msg:'Jin-Woo pulls the enemy from the shadows!', char:'Jin-Woo' },
+            'jinwoo_c': { id:'jinwoo_c', name:"Ruler's Hand", rank:'C', mpCost:50, dmgMult:4, color:'#11D2EF', msg:"Ruler's Hand — Jin-Woo controls the battlefield!", char:'Jin-Woo' },
+            'jinwoo_b': { id:'jinwoo_b', name:'Shadow Army', rank:'B', mpCost:65, dmgMult:5, color:'#9d4edd', msg:'Shadow Army summoned — soldiers rise from darkness!', char:'Jin-Woo' },
+            'jinwoo_a': { id:'jinwoo_a', name:"Monarch's Domain", rank:'A', mpCost:80, dmgMult:7, color:'#9d4edd', msg:"MONARCH'S DOMAIN — Jin-Woo commands the shadow realm!", char:'Jin-Woo' },
+            'jinwoo_s': { id:'jinwoo_s', name:'Arise', rank:'S', mpCost:100, dmgMult:10, color:'#9d4edd', msg:'ARISE — The dead rise to serve the Shadow Monarch!', char:'Jin-Woo' },
+            'jinwoo_splus': { id:'jinwoo_splus', name:'Shadow Monarch', rank:'S+', mpCost:150, dmgMult:15, color:'#9d4edd', msg:'SHADOW MONARCH AWAKENED — Ashborn descends upon the battlefield!', char:'Jin-Woo' },
+
+            // ASTA SKILLS
+            'asta_e': { id:'asta_e', name:'Sword Strike', rank:'E', mpCost:30, dmgMult:2, color:'#11D2EF', msg:'Asta swings his anti-magic sword!', char:'Asta' },
+            'asta_d': { id:'asta_d', name:'Anti-Magic', rank:'D', mpCost:40, dmgMult:3, color:'#333', msg:'Asta channels anti-magic through his blade!', char:'Asta' },
+            'asta_c': { id:'asta_c', name:'Black Asta', rank:'C', mpCost:50, dmgMult:4, color:'#555', msg:'BLACK ASTA — The demon power awakens!', char:'Asta' },
+            'asta_b': { id:'asta_b', name:'Demon Form', rank:'B', mpCost:65, dmgMult:5, color:'#ff4444', msg:'Asta fully merges with the demon — power overflows!', char:'Asta' },
+            'asta_a': { id:'asta_a', name:'Black Divider', rank:'A', mpCost:80, dmgMult:7, color:'#333', msg:'BLACK DIVIDER — A massive anti-magic slash tears through everything!', char:'Asta' },
+            'asta_s': { id:'asta_s', name:'Infinite Slash', rank:'S', mpCost:100, dmgMult:10, color:'#555', msg:'INFINITE SLASH EQUINOX — Asta cuts through all magic!', char:'Asta' },
+            'asta_splus': { id:'asta_splus', name:'Unite Mode', rank:'S+', mpCost:150, dmgMult:15, color:'#ff4444', msg:'UNITE MODE — Asta and Liebe become one unstoppable force!', char:'Asta' },
+
+            // TOJI SKILLS
+            'toji_e': { id:'toji_e', name:'Basic Strike', rank:'E', mpCost:30, dmgMult:2, color:'#11D2EF', msg:'Toji strikes with raw physical power!', char:'Toji' },
+            'toji_d': { id:'toji_d', name:'Heavy Blow', rank:'D', mpCost:40, dmgMult:3, color:'#ff4444', msg:'Toji delivers a devastating heavy blow!', char:'Toji' },
+            'toji_c': { id:'toji_c', name:'Inverted Spear', rank:'C', mpCost:50, dmgMult:4, color:'#FFD700', msg:'Toji uses the Inverted Spear of Heaven — nullifying all techniques!', char:'Toji' },
+            'toji_b': { id:'toji_b', name:'Playful Cloud', rank:'B', mpCost:65, dmgMult:5, color:'#ff4444', msg:'Toji wields the Playful Cloud — an indestructible triple flail!', char:'Toji' },
+            'toji_a': { id:'toji_a', name:'Soul Split', rank:'A', mpCost:80, dmgMult:7, color:'#9d4edd', msg:'SOUL SPLIT — Toji tears through the soul directly!', char:'Toji' },
+            'toji_s': { id:'toji_s', name:'Zero Magic', rank:'S', mpCost:100, dmgMult:10, color:'#fff', msg:'ZERO MAGIC — Heavenly Restriction grants godlike physical power!', char:'Toji' },
+            'toji_splus': { id:'toji_splus', name:'Heavenly Restriction', rank:'S+', mpCost:150, dmgMult:15, color:'#fff', msg:'FULL HEAVENLY RESTRICTION — Toji becomes the perfect weapon!', char:'Toji' },
+
+            // IPPO SKILLS
+            'ippo_e': { id:'ippo_e', name:'Jab', rank:'E', mpCost:30, dmgMult:2, color:'#11D2EF', msg:'Ippo throws a sharp jab!', char:'Ippo' },
+            'ippo_d': { id:'ippo_d', name:'Straight', rank:'D', mpCost:40, dmgMult:3, color:'#FFD700', msg:'Ippo delivers a powerful straight punch!', char:'Ippo' },
+            'ippo_c': { id:'ippo_c', name:'Liver Blow', rank:'C', mpCost:50, dmgMult:4, color:'#ff4444', msg:'Ippo hits the liver — devastating internal damage!', char:'Ippo' },
+            'ippo_b': { id:'ippo_b', name:'Dempsey Roll', rank:'B', mpCost:65, dmgMult:5, color:'#FFD700', msg:'DEMPSEY ROLL — Ippo unleashes the legendary weaving combo!', char:'Ippo' },
+            'ippo_a': { id:'ippo_a', name:'Gazelle Punch', rank:'A', mpCost:80, dmgMult:7, color:'#11D2EF', msg:'GAZELLE PUNCH — A blazing fast uppercut from below!', char:'Ippo' },
+            'ippo_s': { id:'ippo_s', name:'Smash', rank:'S', mpCost:100, dmgMult:10, color:'#FFD700', msg:'THE SMASH — Ippo drives his fist straight down with full power!', char:'Ippo' },
+            'ippo_splus': { id:'ippo_splus', name:'Flicker', rank:'S+', mpCost:150, dmgMult:15, color:'#fff', msg:'FLICKER — Ippo throws a punch so fast it cannot be seen!', char:'Ippo' },
+
+            // TANJIRO SKILLS
+            'tanjiro_e': { id:'tanjiro_e', name:'Water Breathing', rank:'E', mpCost:30, dmgMult:2, color:'#11D2EF', msg:'Tanjiro uses Water Breathing: First Form!', char:'Tanjiro' },
+            'tanjiro_d': { id:'tanjiro_d', name:'Constant Flux', rank:'D', mpCost:40, dmgMult:3, color:'#11D2EF', msg:'Water Breathing: Sixth Form — Whirling Waves Rotation!', char:'Tanjiro' },
+            'tanjiro_c': { id:'tanjiro_c', name:'Whirlpool', rank:'C', mpCost:50, dmgMult:4, color:'#11D2EF', msg:'Water Breathing: Seventh Form — Piercing Rain Drop!', char:'Tanjiro' },
+            'tanjiro_b': { id:'tanjiro_b', name:'Blessed Rain', rank:'B', mpCost:65, dmgMult:5, color:'#11D2EF', msg:'Water Breathing: Second Form — Blessed Rain After Drought!', char:'Tanjiro' },
+            'tanjiro_a': { id:'tanjiro_a', name:'Waltz', rank:'A', mpCost:80, dmgMult:7, color:'#FFD700', msg:'Hinokami Kagura: Dance — Tanjiro channels his father!', char:'Tanjiro' },
+            'tanjiro_s': { id:'tanjiro_s', name:'Hinokami Kagura', rank:'S', mpCost:100, dmgMult:10, color:'#ff4444', msg:'HINOKAMI KAGURA — The flame dance of the sun god!', char:'Tanjiro' },
+            'tanjiro_splus': { id:'tanjiro_splus', name:'Sun Breathing', rank:'S+', mpCost:150, dmgMult:15, color:'#FFD700', msg:'SUN BREATHING: THIRTEENTH FORM — The original breathing style destroys all demons!', char:'Tanjiro' },
+
+            // THORFINN SKILLS
+            'thorfinn_e': { id:'thorfinn_e', name:'Knife Throw', rank:'E', mpCost:30, dmgMult:2, color:'#11D2EF', msg:'Thorfinn throws his daggers with deadly precision!', char:'Thorfinn' },
+            'thorfinn_d': { id:'thorfinn_d', name:'Ambush', rank:'D', mpCost:40, dmgMult:3, color:'#555', msg:'Thorfinn strikes from the shadows!', char:'Thorfinn' },
+            'thorfinn_c': { id:'thorfinn_c', name:'Spin Attack', rank:'C', mpCost:50, dmgMult:4, color:'#FFD700', msg:'Thorfinn spins and slashes in all directions!', char:'Thorfinn' },
+            'thorfinn_b': { id:'thorfinn_b', name:'Snake Pit', rank:'B', mpCost:65, dmgMult:5, color:'#00FF44', msg:'SNAKE PIT — Thorfinn traps the enemy in a web of blades!', char:'Thorfinn' },
+            'thorfinn_a': { id:'thorfinn_a', name:'Falling Star', rank:'A', mpCost:80, dmgMult:7, color:'#FFD700', msg:'FALLING STAR — A diving strike with both daggers!', char:'Thorfinn' },
+            'thorfinn_s': { id:'thorfinn_s', name:'Sword of Thor', rank:'S', mpCost:100, dmgMult:10, color:'#FFD700', msg:'SWORD OF THOR — Thorfinn channels the power of Norse gods!', char:'Thorfinn' },
+            'thorfinn_splus': { id:'thorfinn_splus', name:"Warrior's Code", rank:'S+', mpCost:150, dmgMult:15, color:'#fff', msg:"WARRIOR'S CODE — Thorfinn fights with the fury of a thousand Vikings!", char:'Thorfinn' },
+        };
+
+        // Rank thresholds
+        const RANK_DATA = {
+            'E':  { min:1,  max:9,  color:'#fff',    next:'D rank at LVL 10' },
+            'D':  { min:10, max:19, color:'#00FF44',  next:'C rank at LVL 20' },
+            'C':  { min:20, max:39, color:'#11D2EF',  next:'B rank at LVL 40' },
+            'B':  { min:40, max:59, color:'#FFD700',  next:'A rank at LVL 60' },
+            'A':  { min:60, max:79, color:'#ff4444',  next:'S rank at LVL 80' },
+            'S':  { min:80, max:94, color:'#9d4edd',  next:'S+ rank at LVL 95' },
+            'S+': { min:95, max:999, color:'#fff',    next:'MAX RANK ACHIEVED' }
+        };
+
+        // Character to skill prefix map
+        const CHAR_PREFIX = {
+            'Jin-Woo': 'jinwoo',
+            'Asta': 'asta',
+            'Gojo': 'gojo',
+            'Toji': 'toji',
+            'Ippo': 'ippo',
+            'Garou': 'garou',
+            'Tanjiro': 'tanjiro',
+            'Thorfinn': 'thorfinn'
+        };
+
+        function getRank(level) {
+            if (level >= 95) return 'S+';
+            if (level >= 80) return 'S';
+            if (level >= 60) return 'A';
+            if (level >= 40) return 'B';
+            if (level >= 20) return 'C';
+            if (level >= 10) return 'D';
+            return 'E';
+        }
+
+        function getUnlockedSkills(charClass, level) {
+            const prefix = CHAR_PREFIX[charClass];
+            if (!prefix) return [];
+            const rank = getRank(level);
+            const rankOrder = ['E', 'D', 'C', 'B', 'A', 'S', 'S+'];
+            const currentRankIndex = rankOrder.indexOf(rank);
+            const unlocked = [];
+            rankOrder.forEach((r, i) => {
+                if (i <= currentRankIndex) {
+                    const skillId = `${prefix}_${r.toLowerCase().replace('+', 'plus')}`;
+                    if (SKILL_DB[skillId]) unlocked.push(SKILL_DB[skillId]);
+                }
+            });
+            return unlocked;
+        }
+
+        function initHome() {
+            const currentUserName = localStorage.getItem('currentUser');
+            if (!currentUserName) { window.location.href = 'register.html'; return; }
+
+            let player = JSON.parse(localStorage.getItem(currentUserName));
+
+            // Init equipped skills if not exists
+            if (!player.equippedSkills) {
+                player.equippedSkills = { slot1: null, slot2: null };
+                localStorage.setItem(currentUserName, JSON.stringify(player));
+            }
+
+            // Update UI
+            document.getElementById('display-player-name').innerText = player.name.toUpperCase();
+            document.getElementById('display-player-lvl').innerText = 'LVL ' + player.level;
+            document.getElementById('card-class').innerText = 'CLASS: ' + (player.class || 'NONE').toUpperCase();
+            document.getElementById('main-char-img').src = player.imgFull || '';
+            document.getElementById('card-str').innerText = player.str;
+            document.getElementById('card-spd').innerText = player.spd;
+            document.getElementById('card-stm').innerText = player.stm;
+            document.getElementById('p-gold').innerText = (player.gold || 0).toLocaleString();
+
+            // XP bar
+            const xpNeeded = Math.floor(1000 * (player.level * player.level * 0.5));
+            const xpPercent = (player.xp / xpNeeded) * 100;
+            document.getElementById('xp-fill').style.width = Math.min(xpPercent, 100) + '%';
+            const xpRemaining = xpNeeded - player.xp;
+document.getElementById('xp-text').innerText = `${player.xp} / ${xpNeeded} XP`;
+window._xpInfo = { xp: player.xp, xpNeeded, xpRemaining, level: player.level };
+            // Rank
+            const rank = getRank(player.level);
+            const rankInfo = RANK_DATA[rank];
+            document.getElementById('card-rank').innerText = 'RANK: ' + rank;
+            document.getElementById('card-rank').style.color = rankInfo.color;
+
+            // Equipped skills display
+            updateSkillDisplay(player);
+        }
+
+        function updateSkillDisplay(player) {
+            const slot1 = player.equippedSkills?.slot1;
+            const slot2 = player.equippedSkills?.slot2;
+
+            const slot1El = document.getElementById('slot1-display');
+            const slot2El = document.getElementById('slot2-display');
+
+            if (slot1 && SKILL_DB[slot1]) {
+                const sk = SKILL_DB[slot1];
+                slot1El.innerHTML = `<span class="skill-name" style="color:${sk.color}">${sk.name}</span><span class="skill-mp">${sk.mpCost} MP</span>`;
+            } else {
+                slot1El.innerHTML = `<span class="skill-name" style="color:#333">— SLOT 1 EMPTY —</span><span></span>`;
+            }
+
+            if (slot2 && SKILL_DB[slot2]) {
+                const sk = SKILL_DB[slot2];
+                slot2El.innerHTML = `<span class="skill-name" style="color:${sk.color}">${sk.name}</span><span class="skill-mp">${sk.mpCost} MP</span>`;
+            } else {
+                slot2El.innerHTML = `<span class="skill-name" style="color:#333">— SLOT 2 EMPTY —</span><span></span>`;
+            }
+        }
+
+        function toggleCard() {
+            const card = document.getElementById('battle-card');
+            card.style.display = card.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function logout() {
+            localStorage.removeItem('currentUser');
+            window.location.href = 'register.html';
+        }
+        function toggleXPInfo() {
+    const txt = document.getElementById('xp-text');
+    const info = window._xpInfo;
+    if (!info) return;
+    if (txt.dataset.showing === 'remaining') {
+        txt.innerText = `${info.xp} / ${info.xpNeeded} XP`;
+        txt.style.color = '#555';
+        txt.dataset.showing = 'current';
+    } else {
+        txt.innerText = `⚡ ${info.xpRemaining} XP until Level ${info.level + 1}`;
+        txt.style.color = '#FFD700';
+        txt.dataset.showing = 'remaining';
+        setTimeout(() => {
+            txt.innerText = `${info.xp} / ${info.xpNeeded} XP`;
+            txt.style.color = '#555';
+            txt.dataset.showing = 'current';
+        }, 3000);
+    }
+}
+    </script>
+</body>
+</html>

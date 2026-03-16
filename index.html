@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARISE — Train. Level Up. Dominate.</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: #000;
+            color: #fff;
+            font-family: 'Segoe UI', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* PARTICLE CANVAS */
+        #particles {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+        }
+
+        /* SCANLINES */
+        body::before {
+            content: "";
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0,0,0,0.15) 2px,
+                rgba(0,0,0,0.15) 4px
+            );
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .content {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0;
+        }
+
+        /* SYSTEM ALERT */
+        .system-alert {
+            font-family: monospace;
+            font-size: 0.75rem;
+            color: #11D2EF;
+            letter-spacing: 4px;
+            margin-bottom: 20px;
+            opacity: 0;
+            animation: fadeIn 1s ease 0.5s forwards;
+        }
+
+        /* MAIN TITLE */
+        .title {
+            font-size: clamp(5rem, 15vw, 10rem);
+            font-weight: 900;
+            letter-spacing: 20px;
+            color: #fff;
+            text-shadow:
+                0 0 20px rgba(17, 210, 239, 0.8),
+                0 0 40px rgba(17, 210, 239, 0.4),
+                0 0 80px rgba(17, 210, 239, 0.2);
+            opacity: 0;
+            animation: titleReveal 1.5s ease 1s forwards;
+            line-height: 1;
+        }
+
+        /* DIVIDER LINE */
+        .divider {
+            width: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #11D2EF, transparent);
+            margin: 20px 0;
+            animation: expandLine 1s ease 2s forwards;
+        }
+
+        /* TAGLINE */
+        .tagline {
+            font-size: clamp(0.8rem, 2vw, 1rem);
+            letter-spacing: 6px;
+            color: #555;
+            text-transform: uppercase;
+            opacity: 0;
+            animation: fadeIn 1s ease 2.5s forwards;
+            margin-bottom: 50px;
+        }
+
+        .tagline span {
+            color: #11D2EF;
+        }
+
+        /* ENTER BUTTON */
+        .enter-btn {
+            background: none;
+            border: 1px solid #11D2EF;
+            color: #11D2EF;
+            padding: 15px 60px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            letter-spacing: 6px;
+            cursor: pointer;
+            text-transform: uppercase;
+            position: relative;
+            overflow: hidden;
+            opacity: 0;
+            animation: fadeIn 1s ease 3s forwards;
+            transition: all 0.3s ease;
+        }
+
+        .enter-btn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: rgba(17, 210, 239, 0.1);
+            transition: left 0.3s ease;
+        }
+
+        .enter-btn:hover::before { left: 0; }
+        .enter-btn:hover {
+            box-shadow: 0 0 30px rgba(17, 210, 239, 0.4);
+            color: #fff;
+        }
+
+        /* STATS ROW */
+        .stats-row {
+            display: flex;
+            gap: 40px;
+            margin-top: 50px;
+            opacity: 0;
+            animation: fadeIn 1s ease 3.5s forwards;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-num {
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: #11D2EF;
+            font-family: monospace;
+        }
+
+        .stat-label {
+            font-size: 0.6rem;
+            color: #333;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+
+        /* BOTTOM INFO */
+        .bottom-info {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: monospace;
+            font-size: 0.65rem;
+            color: #222;
+            letter-spacing: 3px;
+            z-index: 10;
+            opacity: 0;
+            animation: fadeIn 1s ease 4s forwards;
+        }
+
+        /* VERSION */
+        .version {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            font-family: monospace;
+            font-size: 0.65rem;
+            color: #333;
+            letter-spacing: 2px;
+            z-index: 10;
+        }
+
+        /* CORNER DECORATIONS */
+        .corner {
+            position: fixed;
+            width: 30px;
+            height: 30px;
+            z-index: 10;
+            opacity: 0;
+            animation: fadeIn 1s ease 1s forwards;
+        }
+
+        .corner-tl { top: 20px; left: 20px; border-top: 1px solid #11D2EF; border-left: 1px solid #11D2EF; }
+        .corner-tr { top: 20px; right: 60px; border-top: 1px solid #11D2EF; border-right: 1px solid #11D2EF; }
+        .corner-bl { bottom: 20px; left: 20px; border-bottom: 1px solid #11D2EF; border-left: 1px solid #11D2EF; }
+        .corner-br { bottom: 20px; right: 20px; border-bottom: 1px solid #11D2EF; border-right: 1px solid #11D2EF; }
+
+        /* ANIMATIONS */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes titleReveal {
+            0% { opacity: 0; letter-spacing: 40px; }
+            100% { opacity: 1; letter-spacing: 20px; }
+        }
+
+        @keyframes expandLine {
+            from { width: 0; }
+            to { width: 300px; }
+        }
+
+        /* FLASH EFFECT ON LOAD */
+        .flash {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: #11D2EF;
+            z-index: 999;
+            animation: flash 0.5s ease forwards;
+            pointer-events: none;
+        }
+
+        @keyframes flash {
+            0% { opacity: 0.3; }
+            100% { opacity: 0; pointer-events: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Flash effect -->
+    <div class="flash"></div>
+
+    <!-- Particles -->
+    <canvas id="particles"></canvas>
+
+    <!-- Corner decorations -->
+    <div class="corner corner-tl"></div>
+    <div class="corner corner-tr"></div>
+    <div class="corner corner-bl"></div>
+    <div class="corner corner-br"></div>
+
+    <!-- Version -->
+    <div class="version">v0.1 — BETA</div>
+
+    <!-- Main content -->
+    <div class="content">
+        <div class="system-alert">[ SYSTEM ONLINE — AWAITING HUNTER ]</div>
+
+        <h1 class="title">ARISE</h1>
+
+        <div class="divider"></div>
+
+        <p class="tagline">
+            Train in real life. <span>Level up</span> in game.
+        </p>
+
+        <button class="enter-btn" onclick="enterSystem()">
+            ⚔ ENTER THE SYSTEM
+        </button>
+
+        <div class="stats-row">
+            <div class="stat">
+                <div class="stat-num">8</div>
+                <div class="stat-label">Characters</div>
+            </div>
+            <div class="stat">
+                <div class="stat-num">7</div>
+                <div class="stat-label">Rank tiers</div>
+            </div>
+            <div class="stat">
+                <div class="stat-num">56</div>
+                <div class="stat-label">Skills</div>
+            </div>
+            <div class="stat">
+                <div class="stat-num">6</div>
+                <div class="stat-label">Dungeons</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-info">ARISE — A REAL LIFE RPG FITNESS SYSTEM</div>
+
+    <script>
+        // PARTICLE SYSTEM
+        const canvas = document.getElementById('particles');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        const particles = [];
+        const PARTICLE_COUNT = 80;
+
+        for (let i = 0; i < PARTICLE_COUNT; i++) {
+            particles.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                size: Math.random() * 1.5 + 0.5,
+                speedX: (Math.random() - 0.5) * 0.3,
+                speedY: (Math.random() - 0.5) * 0.3,
+                opacity: Math.random() * 0.5 + 0.1,
+                pulse: Math.random() * Math.PI * 2
+            });
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            particles.forEach(p => {
+                p.x += p.speedX;
+                p.y += p.speedY;
+                p.pulse += 0.02;
+
+                if (p.x < 0) p.x = canvas.width;
+                if (p.x > canvas.width) p.x = 0;
+                if (p.y < 0) p.y = canvas.height;
+                if (p.y > canvas.height) p.y = 0;
+
+                const opacity = p.opacity * (0.7 + 0.3 * Math.sin(p.pulse));
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(17, 210, 239, ${opacity})`;
+                ctx.fill();
+            });
+
+            requestAnimationFrame(animateParticles);
+        }
+
+        animateParticles();
+
+        // ENTER SYSTEM
+        function enterSystem() {
+            const btn = document.querySelector('.enter-btn');
+            btn.innerText = 'INITIALIZING...';
+            btn.style.borderColor = '#00FF44';
+            btn.style.color = '#00FF44';
+
+            setTimeout(() => {
+                document.body.style.transition = 'opacity 0.5s ease';
+                document.body.style.opacity = '0';
+                setTimeout(() => {
+                    window.location.href = 'register.html';
+                }, 500);
+            }, 800);
+        }
+
+        // KEYBOARD SHORTCUT
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') enterSystem();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>System: Awakening</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .system-container { background: rgba(0, 5, 10, 0.95); border: 1px solid #11D2EF; padding: 40px; width: 400px; text-align: center; box-shadow: 0 0 30px rgba(17, 210, 239, 0.2); }
+        .glitch { color: #11D2EF; font-size: 1.5rem; letter-spacing: 5px; margin-bottom: 30px; font-weight: 900; }
+        .input-group { margin-bottom: 15px; text-align: left; }
+        .input-group label { display: block; color: #11D2EF; font-size: 0.6rem; letter-spacing: 2px; margin-bottom: 5px; }
+        input { width: 100%; background: #000; border: 1px solid #333; padding: 12px; color: #fff; outline: none; }
+        input:focus { border-color: #11D2EF; }
+        .arise-btn { width: 100%; background: none; border: 1px solid #11D2EF; color: #11D2EF; padding: 15px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .arise-btn:hover { background: #11D2EF; color: #000; }
+        #system-msg { color: #ff4444; font-size: 0.75rem; margin-top: 15px; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <div class="system-container">
+        <h1 class="glitch">IDENTITY VERIFICATION</h1>
+        
+        <div class="input-group">
+            <label>HUNTER NAME (UNIQUE ID)</label>
+            <input type="text" id="regName" placeholder="Enter name...">
+        </div>
+        
+        <div class="input-group">
+            <label>ACCESS PASSWORD</label>
+            <input type="password" id="regPass" placeholder="••••••••">
+        </div>
+
+        <button class="arise-btn" onclick="authenticate()">INITIALIZE</button>
+        <div id="system-msg"></div>
+    </div>
+
+    <script>
+        function authenticate() {
+            const name = document.getElementById('regName').value.trim();
+            const pass = document.getElementById('regPass').value.trim();
+            const msg = document.getElementById('system-msg');
+
+            if(!name || !pass) {
+                msg.innerText = "[ERROR: MANDATORY FIELDS EMPTY]";
+                return;
+            }
+
+            // Look for existing user data
+            let userData = localStorage.getItem(name);
+
+            if (userData) {
+                // USER EXISTS: Check Password
+                let player = JSON.parse(userData);
+                if (player.password === pass) {
+                    // Success: Set this as the CURRENT session
+                    localStorage.setItem('currentUser', name);
+                    window.location.href = 'home.html';
+                } else {
+                    msg.innerText = "[ERROR: INCORRECT ACCESS KEY]";
+                }
+            } else {
+                // NEW USER: Create Profile
+                const newPlayer = {
+                    name: name,
+                    password: pass,
+                    level: 1,
+                    xp: 0,
+                    gold: 0,
+                    str: 10,
+                    spd: 10,
+                    stm: 10,
+                    class: null // Will be chosen in select.html
+                };
+                
+                localStorage.setItem(name, JSON.stringify(newPlayer));
+                localStorage.setItem('currentUser', name);
+                window.location.href = 'select.html';
+            }
+        }
+    </script>
+</body>
+</html>

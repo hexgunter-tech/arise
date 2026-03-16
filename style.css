@@ -1,0 +1,127 @@
+/* --- SYSTEM CORE STYLES --- */
+:root {
+    --system-blue: #11D2EF;
+    --system-purple: #9d4edd;
+    --system-gold: #FFD700;
+    --system-red: #ff4444;
+    --system-bg: #050505;
+    --panel-bg: rgba(255, 255, 255, 0.05);
+}
+
+body {
+    background-color: var(--system-bg);
+    color: #ffffff;
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
+
+/* --- BUTTONS --- */
+button {
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    transition: 0.3s;
+    cursor: pointer;
+}
+
+.small-btn {
+    background: transparent;
+    border: 1px solid var(--system-blue);
+    color: var(--system-blue);
+    padding: 12px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.small-btn:hover {
+    background: var(--system-blue);
+    color: #000;
+    box-shadow: 0 0 10px var(--system-blue);
+}
+
+.action-btn {
+    background: #000;
+    border: 2px solid var(--system-blue);
+    color: var(--system-blue);
+    padding: 12px 35px;
+    font-weight: bold;
+    box-shadow: 0 0 5px rgba(17, 210, 239, 0.2);
+}
+
+.action-btn:hover:not(:disabled) {
+    background: var(--system-blue);
+    color: #000;
+    box-shadow: 0 0 20px var(--system-blue);
+}
+
+/* --- SYSTEM PANELS --- */
+.system-panel {
+    background: var(--panel-bg);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    padding: 20px;
+    border-radius: 2px;
+}
+
+/* --- INPUTS (For Registration) --- */
+input[type="text"], input[type="password"], select {
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid #333;
+    color: #fff;
+    padding: 10px;
+    width: 100%;
+    margin-bottom: 15px;
+    outline: none;
+}
+
+input:focus {
+    border-color: var(--system-blue);
+    box-shadow: 0 0 5px var(--system-blue);
+}
+
+/* --- PROGRESS BARS --- */
+.bar-container {
+    width: 100%;
+    background: #111;
+    height: 10px;
+    border: 1px solid #333;
+    overflow: hidden;
+    position: relative;
+}
+
+/* --- ANIMATIONS --- */
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+
+.glitch-text {
+    animation: pulse 2s infinite;
+    text-shadow: 0 0 10px var(--system-blue);
+}
+
+/* --- SCROLLBAR --- */
+::-webkit-scrollbar {
+    width: 4px;
+}
+
+::-webkit-scrollbar-track {
+    background: #000;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--system-blue);
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateX(-20px); }
+    to { opacity: 1; transform: translateX(0); }
+}

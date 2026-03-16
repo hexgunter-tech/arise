@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>System: Weekly Training</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; overflow-x: hidden; }
+
+        .training-layout {
+            min-height: 100vh; width: 100vw; display: flex; flex-direction: column;
+            align-items: center; padding: 40px 20px;
+            background: radial-gradient(circle, rgba(17, 210, 239, 0.05) 0%, rgba(0,0,0,1) 90%);
+            box-sizing: border-box;
+        }
+
+        .header-tag {
+            color: #11D2EF; font-size: 2rem; letter-spacing: 5px;
+            text-shadow: 0 0 15px #11D2EF; text-transform: uppercase; margin-bottom: 10px;
+        }
+
+        .xp-cap-info {
+            color: #FFD700; font-family: monospace; font-size: 0.8rem;
+            margin-bottom: 25px; letter-spacing: 2px;
+        }
+
+        /* DAY TABS */
+        .day-tabs {
+            display: flex; gap: 5px; margin-bottom: 25px; flex-wrap: wrap; justify-content: center;
+        }
+
+        .day-tab {
+            background: #000; border: 1px solid #333; color: #555;
+            padding: 8px 16px; cursor: pointer; font-size: 0.75rem;
+            letter-spacing: 2px; font-weight: bold; transition: 0.2s;
+        }
+
+        .day-tab.active { border-color: #11D2EF; color: #11D2EF; box-shadow: 0 0 10px rgba(17,210,239,0.3); }
+        .day-tab.completed { border-color: #00FF44; color: #00FF44; }
+        .day-tab.missed { border-color: #ff4444; color: #ff4444; }
+
+        /* MAIN CARD */
+        .day-card {
+            background: rgba(0,0,0,0.8); border: 1px solid rgba(17,210,239,0.3);
+            padding: 30px; width: 95%; max-width: 700px; min-height: 400px;
+        }
+
+        .day-title {
+            color: #11D2EF; font-size: 1.3rem; letter-spacing: 4px;
+            border-bottom: 1px solid rgba(17,210,239,0.2); padding-bottom: 10px; margin-bottom: 20px;
+        }
+
+        /* PLAN MODE */
+        .plan-input-row {
+            display: flex; gap: 10px; margin-bottom: 15px; align-items: center;
+        }
+
+        .plan-input-row input {
+            background: rgba(17,210,239,0.05); border: 1px solid #333;
+            color: #fff; padding: 10px; font-size: 0.85rem; outline: none;
+        }
+
+        .plan-input-row input:focus { border-color: #11D2EF; }
+        .exercise-input { flex: 2; }
+        .reps-input { flex: 1; }
+
+        .add-btn {
+            background: #11D2EF; color: #000; border: none;
+            padding: 10px 20px; font-weight: bold; cursor: pointer; font-size: 0.85rem;
+        }
+
+        .planned-exercise {
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(17,210,239,0.05); border-left: 3px solid #11D2EF;
+            padding: 10px 15px; margin-bottom: 8px; font-family: monospace;
+        }
+
+        .planned-exercise span { color: #11D2EF; font-size: 0.85rem; }
+        .planned-exercise .reps-badge { color: #FFD700; font-size: 0.8rem; }
+
+        .remove-btn {
+            background: none; border: 1px solid #ff4444; color: #ff4444;
+            padding: 3px 8px; cursor: pointer; font-size: 0.7rem;
+        }
+
+        .lock-btn {
+            width: 100%; background: none; border: 2px solid #00FF44;
+            color: #00FF44; padding: 15px; font-weight: bold; cursor: pointer;
+            font-size: 0.9rem; letter-spacing: 3px; margin-top: 20px;
+        }
+
+        .lock-btn:hover { background: #00FF44; color: #000; }
+
+        /* EXECUTE MODE */
+        .execute-exercise {
+            background: rgba(0,0,0,0.5); border: 1px solid rgba(17,210,239,0.2);
+            padding: 15px 20px; margin-bottom: 12px;
+        }
+
+        .execute-exercise.claimed { border-color: #00FF44; opacity: 0.6; }
+
+        .execute-top {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .exercise-name { color: #fff; font-size: 0.9rem; font-weight: bold; }
+        .target-reps { color: #555; font-size: 0.75rem; font-family: monospace; }
+        .xp-preview { color: #FFD700; font-size: 0.75rem; font-family: monospace; }
+
+        .execute-bottom { display: flex; gap: 10px; align-items: center; }
+
+        .reps-done-input {
+            background: rgba(17,210,239,0.05); border: 1px solid #333;
+            color: #fff; padding: 8px 12px; font-size: 0.85rem;
+            outline: none; width: 100px;
+        }
+
+        .reps-done-input:focus { border-color: #11D2EF; }
+
+        .claim-btn {
+            background: none; border: 1px solid #11D2EF; color: #11D2EF;
+            padding: 8px 20px; cursor: pointer; font-weight: bold; font-size: 0.8rem;
+        }
+
+        .claim-btn:hover { background: #11D2EF; color: #000; }
+        .claim-btn:disabled { border-color: #333; color: #333; cursor: not-allowed; }
+
+        .claimed-badge {
+            color: #00FF44; font-family: monospace; font-size: 0.8rem; display: none;
+        }
+
+        /* DAILY SUMMARY */
+        .daily-summary {
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(17,210,239,0.05); border: 1px solid rgba(17,210,239,0.2);
+            padding: 15px 20px; margin-top: 20px;
+        }
+
+        .summary-stat { text-align: center; }
+        .summary-stat .val { color: #11D2EF; font-size: 1.2rem; font-weight: bold; }
+        .summary-stat .label { color: #555; font-size: 0.65rem; letter-spacing: 1px; }
+
+        /* SYSTEM STATUS */
+        #system-status {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,5,10,0.95); border: 1px solid #11D2EF;
+            color: #11D2EF; padding: 12px 40px; font-weight: bold;
+            letter-spacing: 2px; display: none; z-index: 1000;
+            box-shadow: 0 0 20px rgba(17,210,239,0.4); font-family: monospace;
+        }
+
+        .empty-day {
+            text-align: center; color: #333; font-family: monospace;
+            padding: 40px; font-size: 0.9rem; letter-spacing: 2px;
+        }
+
+        .replan-btn {
+            background: none; border: 1px solid #FFD700; color: #FFD700;
+            padding: 10px 25px; cursor: pointer; font-size: 0.8rem;
+            letter-spacing: 2px; margin-top: 15px;
+        }
+
+        .replan-btn:hover { background: #FFD700; color: #000; }
+
+        .side-menu { position: fixed; left: 20px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 15px; }
+        .small-btn { width: 50px; height: 50px; background: #000; border: 1px solid #11D2EF; color: #11D2EF; cursor: pointer; font-size: 1.2rem; }
+        .small-btn:hover { background: #11D2EF; color: #000; }
+
+        .mode-badge {
+            font-size: 0.7rem; letter-spacing: 2px; padding: 3px 10px;
+            border: 1px solid; display: inline-block; margin-bottom: 15px;
+        }
+
+        .mode-plan { border-color: #FFD700; color: #FFD700; }
+        .mode-execute { border-color: #00FF44; color: #00FF44; }
+        .mode-done { border-color: #555; color: #555; }
+    </style>
+</head>
+<body onload="initWorkout()">
+
+    <div class="training-layout">
+        <h1 class="header-tag">⚔ MISSION BOARD</h1>
+        <div class="xp-cap-info" id="cap-info">DAILY XP CAP: 210 | TODAY'S EARNED: 0</div>
+
+        <div class="day-tabs" id="day-tabs"></div>
+
+        <div class="day-card" id="day-card"></div>
+    </div>
+
+    <nav class="side-menu">
+        <button class="small-btn" onclick="window.location.href='home.html'">🏠</button>
+        <button class="small-btn" onclick="window.location.href='inventory.html'">🎒</button>
+        <button class="small-btn" onclick="window.location.href='shop.html'">💰</button>
+    </nav>
+
+    <div id="system-status">SYSTEM: GAINS RECORDED</div>
+
+    <script>
+        function removeExercise(day, index) {
+    player.weekPlan[day].splice(index, 1);
+    savePlayer();
+    renderDay(day);
+}
+        const currentUser = localStorage.getItem('currentUser');
+        let player = {};
+        let activeDay = 1;
+        const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+        const MAX_EXERCISES = 5;
+        const MAX_REPS = 200;
+
+        
+
+        function initWorkout() {
+            if (!currentUser) { window.location.href = 'register.html'; return; }
+            player = JSON.parse(localStorage.getItem(currentUser));
+
+            // Initialize weekly plan if not exists
+            if (!player.weekPlan) {
+                player.weekPlan = { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] };
+            }
+            if (!player.weekClaimed) {
+                player.weekClaimed = { 1: {}, 2: {}, 3: {}, 4: {}, 5: {}, 6: {} };
+            }
+            if (!player.weekXP) {
+                player.weekXP = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+            }
+
+            renderTabs();
+            renderDay(activeDay);
+            updateCapInfo();
+        }
+
+        function updateCapInfo() {
+            const cap = getDailyCap();
+            const earned = player.weekXP[activeDay] || 0;
+            document.getElementById('cap-info').innerText =
+    `DAY ${activeDay} XP EARNED: ${earned} XP`;
+        }
+
+        function renderTabs() {
+            const tabs = document.getElementById('day-tabs');
+            tabs.innerHTML = '';
+            DAYS.forEach((day, i) => {
+                const d = i + 1;
+                const plan = player.weekPlan[d] || [];
+                const claimed = player.weekClaimed[d] || {};
+                const claimedCount = Object.keys(claimed).length;
+
+                let tabClass = '';
+                if (d === activeDay) tabClass = 'active';
+                else if (plan.length > 0 && claimedCount === plan.length) tabClass = 'completed';
+
+                tabs.innerHTML += `
+                    <div class="day-tab ${tabClass}" onclick="switchDay(${d})">${day}</div>
+                `;
+            });
+        }
+
+        function switchDay(day) {
+            activeDay = day;
+            renderTabs();
+            renderDay(day);
+            updateCapInfo();
+        }
+
+        function renderDay(day) {
+            const card = document.getElementById('day-card');
+            const plan = player.weekPlan[day] || [];
+            const claimed = player.weekClaimed[day] || {};
+            const isPlanMode = plan.length === 0;
+
+            let html = `<div class="day-title">${DAYS[day-1]} — DAY ${day}</div>`;
+
+if (isPlanMode) {
+    // PLAN MODE
+    html += `<div class="mode-badge mode-plan">📋 PLAN MODE</div>`;
+    html += `<p style="color:#555; font-size:0.75rem; font-family:monospace; margin-bottom:15px;">
+        ADD YOUR EXERCISES FOR THIS DAY (MAX ${MAX_EXERCISES} | MAX ${MAX_REPS} REPS EACH)
+    </p>`;
+
+    html += `
+        <div class="plan-input-row">
+            <input class="exercise-input" type="text" id="ex-name-${day}" placeholder="Exercise name...">
+            <input class="reps-input" type="number" id="ex-reps-${day}" placeholder="Target reps" min="1" max="${MAX_REPS}">
+            <button class="add-btn" onclick="addExercise(${day})">+ ADD</button>
+        </div>
+        <div id="planned-list-${day}"></div>
+    `;
+
+    html += `<button class="lock-btn" onclick="lockDay(${day})">⚔ LOCK IN & START TRAINING</button>`;
+            } else {
+                // EXECUTE MODE
+                const allClaimed = Object.keys(claimed).length === plan.length;
+
+                if (allClaimed) {
+                    html += `<div class="mode-badge mode-done">✅ DAY COMPLETE</div>`;
+                } else {
+                    html += `<div class="mode-badge mode-execute">🔥 EXECUTE MODE</div>`;
+                }
+
+                plan.forEach((ex, index) => {
+                    const isClaimed = claimed[index] !== undefined;
+                    const maxXP = Math.min(ex.reps * 0.5, getDailyCap());
+
+                    html += `
+                        <div class="execute-exercise ${isClaimed ? 'claimed' : ''}" id="ex-row-${index}">
+                            <div class="execute-top">
+                                <span class="exercise-name">${ex.name.toUpperCase()}</span>
+                                <span class="target-reps">TARGET: ${ex.reps} REPS</span>
+                                <span class="xp-preview">MAX: +${Math.floor(maxXP)} XP</span>
+                            </div>
+                            <div class="execute-bottom">
+                                ${isClaimed ?
+                                    `<span class="claimed-badge" style="display:block">
+                                        ✅ CLAIMED — ${claimed[index].reps} reps | +${claimed[index].xp} XP
+                                    </span>` :
+                                    `<input class="reps-done-input" type="number" id="done-${index}"
+                                        placeholder="Reps done" min="0" max="${ex.reps}">
+                                    <button class="claim-btn" onclick="claimExercise(${day}, ${index})">
+                                        CLAIM XP
+                                    </button>`
+                                }
+                            </div>
+                        </div>
+                    `;
+                });
+
+                // Daily summary
+                const earnedXP = player.weekXP[day] || 0;
+                const earnedGold = player.weekGold ? (player.weekGold[day] || 0) : 0;
+                html += `
+                    <div class="daily-summary">
+                        <div class="summary-stat">
+                            <div class="val">${Object.keys(claimed).length}/${plan.length}</div>
+                            <div class="label">COMPLETED</div>
+                        </div>
+                        <div class="summary-stat">
+                            <div class="val">${earnedXP}</div>
+                            <div class="label">XP EARNED</div>
+                        </div>
+                        <div class="summary-stat">
+                            <div class="val">${earnedGold}G</div>
+                            <div class="label">GOLD EARNED</div>
+                        </div>
+                        <div class="summary-stat">
+                            <div class="val">${getDailyCap()}</div>
+                            <div class="label">DAILY CAP</div>
+                        </div>
+                    </div>
+                `;
+
+                {
+                    html += `
+    <div style="display:flex; gap:10px; margin-top:15px;">
+        <button class="replan-btn" onclick="refreshDay(${day})">🔄 REFRESH</button>
+        <button class="replan-btn" style="border-color:#ff4444; color:#ff4444;" onclick="replanDay(${day})">🗑️ RESET</button>
+    </div>
+`;
+                }
+            }
+
+            card.innerHTML = html;
+        }
+
+        function addExercise(day) {
+            const nameInput = document.getElementById(`ex-name-${day}`);
+            const repsInput = document.getElementById(`ex-reps-${day}`);
+
+            const name = nameInput.value.trim();
+            const reps = parseInt(repsInput.value);
+
+            if (!name) { showStatus('ERROR: ENTER EXERCISE NAME'); return; }
+            if (!reps || reps < 1) { showStatus('ERROR: ENTER VALID REPS'); return; }
+            if (reps > MAX_REPS) { showStatus(`ERROR: MAX ${MAX_REPS} REPS ALLOWED`); return; }
+
+            const plan = player.weekPlan[day];
+            if (plan.length >= MAX_EXERCISES) {
+                showStatus(`ERROR: MAX ${MAX_EXERCISES} EXERCISES PER DAY`);
+                return;
+            }
+
+            plan.push({ name, reps });
+savePlayer();
+
+// Don't re-render whole day — just update the list!
+const list = document.getElementById(`planned-list-${day}`);
+list.innerHTML = '';
+plan.forEach((ex, i) => {
+    list.innerHTML += `
+        <div class="planned-exercise">
+            <span>${ex.name.toUpperCase()}</span>
+            <span class="reps-badge">${ex.reps} REPS</span>
+            <button class="remove-btn" onclick="removeExercise(${day}, ${i})">✕</button>
+        </div>
+    `;
+});
+
+nameInput.value = '';
+repsInput.value = '';
+        }
+
+        function lockDay(day) {
+    const plan = player.weekPlan[day];
+    if (plan.length === 0) {
+        showStatus('ERROR: ADD AT LEAST 1 EXERCISE');
+        return;
+    }
+    // Clear edit mode
+    if (player.editMode) player.editMode[day] = false;
+    showStatus(`DAY ${day} LOCKED! BEGIN TRAINING!`);
+    savePlayer();
+    renderDay(day);
+    renderTabs();
+}
+
+        function claimExercise(day, index) {
+            const input = document.getElementById(`done-${index}`);
+            const repsDone = parseInt(input.value);
+            const plan = player.weekPlan[day];
+            const ex = plan[index];
+
+            if (!repsDone || repsDone < 0) {
+                showStatus('ERROR: ENTER REPS COMPLETED');
+                return;
+            }
+            const remaining = 99999; // No cap!
+           
+
+            // XP Calculation
+            const completionRate = Math.min(repsDone / ex.reps, 1);
+            let earnedXP = Math.floor(repsDone * 0.5);
+            earnedXP = Math.min(earnedXP, remaining); // Cap check
+
+            // Save claim
+            if (!player.weekClaimed[day]) player.weekClaimed[day] = {};
+            player.weekClaimed[day][index] = { reps: repsDone, xp: earnedXP };
+
+            // Add XP
+            player.xp += earnedXP;
+            player.weekXP[day] = (player.weekXP[day] || 0) + earnedXP;
+
+            // Level up check
+            const xpNeeded = Math.floor(1000 * (player.level * player.level * 0.5));
+if (player.xp >= xpNeeded) {
+    player.xp -= xpNeeded;
+    player.level += 1;
+    showStatus(`⚡ LEVEL UP! NOW LVL ${player.level}! Next: ${Math.floor(1000 * (player.level * player.level * 0.5))} XP`);
+} else {
+                showStatus(`QUEST COMPLETE: +${earnedXP} XP`);
+            }
+
+            // Check if ALL exercises claimed for today
+const claimed = player.weekClaimed[day];
+const totalClaimed = Object.keys(claimed).length;
+const totalExercises = plan.length;
+
+if (totalClaimed === totalExercises) {
+    // Check if gold already given for this day
+    if (!player.weekGold) player.weekGold = {};
+    if (!player.weekGold[day]) {
+        player.gold += 100;
+        player.weekGold[day] = 100;
+        setTimeout(() => showStatus('🏆 DAY COMPLETE! +100 GOLD BONUS!'), 1500);
+    }
+}
+
+            savePlayer();
+            updateCapInfo();
+            renderDay(day);
+            renderTabs();
+        }
+
+        function replanDay(day) {
+            if (!confirm('Reset this day? All progress will be lost!')) return;
+            player.weekPlan[day] = [];
+            player.weekClaimed[day] = {};
+            player.weekXP[day] = 0;
+            if (player.weekGold) player.weekGold[day] = 0;
+            savePlayer();
+            renderDay(day);
+            renderTabs();
+            showStatus('DAY RESET — REPLAN YOUR MISSIONS');
+        }
+
+        function savePlayer() {
+            localStorage.setItem(currentUser, JSON.stringify(player));
+        }
+
+        function showStatus(msg) {
+            const status = document.getElementById('system-status');
+            status.innerText = '> ' + msg;
+            status.style.display = 'block';
+            setTimeout(() => { status.style.display = 'none'; }, 2500);
+        }
+        
+function refreshDay(day) {
+    player.weekClaimed[day] = {};
+    player.weekXP[day] = 0;
+    if (player.weekGold) player.weekGold[day] = 0;
+    savePlayer();
+    renderDay(day);
+    renderTabs();
+    showStatus('DAY REFRESHED — READY TO TRAIN AGAIN!');
+}
+    </script>
+</body>
+</html>

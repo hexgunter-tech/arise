@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>System: Global Rankings</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { 
+            background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; 
+            margin: 0; overflow: hidden; height: 100vh;
+        }
+
+        .rank-container {
+            display: flex; flex-direction: column; align-items: center;
+            height: 100vh; padding: 40px 20px;
+            background: radial-gradient(circle at 50% 0%, rgba(157, 78, 221, 0.15) 0%, #000 100%);
+        }
+
+        .rank-header { border-bottom: 2px solid #9d4edd; width: 80%; max-width: 700px; text-align: center; margin-bottom: 30px; }
+        .rank-header h1 { letter-spacing: 12px; color: #9d4edd; text-shadow: 0 0 15px #9d4edd; text-transform: uppercase; }
+
+        .leaderboard-table {
+            width: 100%; max-width: 800px;
+            border-collapse: collapse; background: rgba(0,0,0,0.6);
+            border: 1px solid rgba(157, 78, 221, 0.3);
+        }
+
+        .leaderboard-table th {
+            background: rgba(157, 78, 221, 0.2); color: #9d4edd;
+            padding: 15px; text-align: left; font-size: 0.8rem; letter-spacing: 2px;
+        }
+
+        .leaderboard-table td {
+            padding: 12px 15px; border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-family: monospace;
+        }
+
+        /* HIGHLIGHT TOP 3 */
+        .rank-row:nth-child(1) { color: #FFD700; background: rgba(255, 215, 0, 0.05); } /* Gold */
+        .rank-row:nth-child(2) { color: #C0C0C0; } /* Silver */
+        .rank-row:nth-child(3) { color: #CD7F32; } /* Bronze */
+
+        .class-tag { 
+            font-size: 0.7rem; padding: 2px 6px; border: 1px solid; 
+            border-radius: 3px; margin-left: 10px; opacity: 0.8;
+        }
+
+        .back-btn { position: fixed; bottom: 30px; left: 30px; }
+        
+        .empty-msg { text-align: center; padding: 40px; color: #555; font-style: italic; }
+    </style>
+</head>
+<body onload="loadRankings()">
+
+    <div class="rank-container">
+        <div class="rank-header">
+            <h1>Global Rankings</h1>
+            <p style="color: #888; font-size: 0.8rem; margin-top: -10px;">TOP HUNTERS RECORDED IN SYSTEM</p>
+        </div>
+
+        <table class="leaderboard-table">
+            <thead>
+                <tr>
+                    <th>RANK</th>
+                    <th>HUNTER NAME</th>
+                    <th>LEVEL</th>
+                    <th>WEALTH</th>
+                </tr>
+            </thead>
+            <tbody id="rank-body">
+                </tbody>
+        </table>
+    </div>
+
+    <button class="back-btn small-btn" onclick="window.location.href='home.html'">🏠 RETURN</button>
+
+    <script>
+        function loadRankings() {
+            const tbody = document.getElementById('rank-body');
+            let allPlayers = [];
+
+            // 1. SCAN ALL LOCAL STORAGE KEYS
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                
+                // Skip system keys, only get player objects
+                if (key === 'currentUser' || key === 'activeDungeon') continue;
+
+                try {
+                    const data = JSON.parse(localStorage.getItem(key));
+                    // Check if the data looks like a player object
+                    if (data && data.name && data.level !== undefined) {
+                        allPlayers.push(data);
+                    }
+                } catch (e) {
+                    // Not a player object, ignore
+                }
+            }
+
+            // 2. SORT BY LEVEL (HIGHEST FIRST)
+            allPlayers.sort((a, b) => b.level - a.level || b.gold - a.gold);
+
+            // 3. RENDER TOP 10
+            if (allPlayers.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="empty-msg">No hunter data found in system...</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = "";
+            allPlayers.slice(0, 10).forEach((player, index) => {
+                const isCurrent = player.name === localStorage.getItem('currentUser');
+                
+                tbody.innerHTML += `
+                    <tr class="rank-row" style="${isCurrent ? 'border-left: 4px solid #11D2EF;' : ''}">
+                        <td>#${index + 1}</td>
+                        <td>
+                            ${player.name.toUpperCase()} 
+                            <span class="class-tag" style="border-color: ${getClassColor(player.class)}">${player.class}</span>
+                            ${isCurrent ? ' <small style="color:#11D2EF">(YOU)</small>' : ''}
+                        </td>
+                        <td>LVL ${player.level}</td>
+                        <td>${player.gold.toLocaleString()}G</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function getClassColor(className) {
+            const colors = {
+                'Jin-Woo': '#11D2EF',
+                'Gojo': '#fff',
+                'Toji': '#f44',
+                'Garou': '#9d4edd',
+                'Asta': '#00FF44'
+            };
+            return colors[className] || '#888';
+        }
+    </script>
+</body>
+</html>

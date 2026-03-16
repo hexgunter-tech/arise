@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>System: Selection</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; overflow-x: hidden; }
+        
+        .selection-page { padding: 50px 20px; text-align: center; }
+        
+        .system-title { 
+            font-size: 2.2rem; letter-spacing: 8px; color: #11D2EF; 
+            text-shadow: 0 0 15px rgba(17, 210, 239, 0.5); margin-bottom: 40px;
+            font-weight: 900;
+        }
+
+        .character-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .char-card {
+            background: rgba(17, 210, 239, 0.03);
+            border: 1px solid rgba(17, 210, 239, 0.2);
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .char-card:hover {
+            border-color: #11D2EF;
+            background: rgba(17, 210, 239, 0.1);
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(17, 210, 239, 0.2);
+        }
+
+        .img-frame {
+            width: 100%;
+            aspect-ratio: 1/1;
+            background: #0a0a0a;
+            margin-bottom: 12px;
+            border: 1px solid #222;
+            overflow: hidden;
+        }
+
+        .img-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: grayscale(0.8);
+            transition: 0.4s;
+        }
+
+        .char-card:hover img { 
+            filter: grayscale(0); 
+            transform: scale(1.05); 
+        }
+
+        .char-card p {
+            margin: 0;
+            font-size: 0.9rem;
+            letter-spacing: 2px;
+            color: #666;
+            font-weight: bold;
+        }
+
+        .char-card:hover p { color: #11D2EF; }
+
+        #user-display {
+            position: fixed; top: 20px; left: 20px;
+            font-family: monospace; color: #11D2EF; font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body onload="checkAccess()">
+
+    <div id="user-display">SYNCING ID: <span id="active-hunter">---</span></div>
+
+    <div class="selection-page">
+        <h1 class="system-title">SELECT YOUR VESSEL</h1>
+        <div class="character-grid" id="char-grid"></div>
+    </div>
+
+    <script>
+        const characters = [
+            { name: 'Jin-Woo', icon: 'images/jinwoo_face.png', full: 'images/jinwoo_full.png' },
+            { name: 'Asta', icon: 'images/asta_face.png', full: 'images/asta_full.png' },
+            { name: 'Gojo', icon: 'images/gojo_face.png', full: 'images/gojo_full.png' },
+            { name: 'Toji', icon: 'images/toji_face.png', full: 'images/toji_full.png' },
+            { name: 'Ippo', icon: 'images/ippo_face.png', full: 'images/ippo_full.png' },
+            { name: 'Garou', icon: 'images/garou_face.png', full: 'images/garou_full.png' },
+            { name: 'Tanjiro', icon: 'images/tanjiro_face.png', full: 'images/tanjiro_full.png' },
+            { name: 'Thorfinn', icon: 'images/thorfinn_face.png', full: 'images/thorfinn_full.png' }
+        ];
+
+        const currentUser = localStorage.getItem('currentUser');
+
+        function checkAccess() {
+            if (!currentUser) {
+                alert("ACCESS DENIED: No Hunter ID detected.");
+                window.location.href = 'register.html';
+                return;
+            }
+            
+            // If character is already selected for THIS specific user, skip to home
+            let playerData = JSON.parse(localStorage.getItem(currentUser));
+            if (playerData && playerData.class) {
+                window.location.href = 'home.html';
+            }
+
+            document.getElementById('active-hunter').innerText = currentUser.toUpperCase();
+            renderGrid();
+        }
+
+        function renderGrid() {
+            const grid = document.getElementById('char-grid');
+            characters.forEach(char => {
+                grid.innerHTML += `
+                    <div class="char-card" onclick="pick('${char.name}', '${char.full}', '${char.icon}')">
+                        <div class="img-frame">
+                            <img src="${char.icon}" onerror="this.src='https://via.placeholder.com/150/000?text=${char.name}'">
+                        </div>
+                        <p>${char.name.toUpperCase()}</p>
+                    </div>`;
+            });
+        }
+
+        function pick(className, fullImg, iconImg) {
+            // 1. Get the current user's full data object
+            let playerData = JSON.parse(localStorage.getItem(currentUser));
+
+            // 2. Add the character details into the object
+            playerData.class = className;
+            playerData.imgFull = fullImg;
+            playerData.imgIcon = iconImg;
+
+            // 3. Save the updated object back to their unique name key
+            localStorage.setItem(currentUser, JSON.stringify(playerData));
+
+            // 4. Proceed to Home
+            window.location.href = 'home.html';
+        }
+    </script>
+</body>
+</html>
